@@ -174,7 +174,7 @@ int main( int argc, char** argv )
 //    warp_out.create(src.size(), src.type());
 
     /// Convert the image to HSV
-    cvtColor( src, src_hsv, CV_BGR2HSV );
+    //cvtColor( src, src, CV_BGR2HSV );
 
     /// Show image
     imshow(window_name, src);
@@ -206,7 +206,10 @@ int main( int argc, char** argv )
         imshow(window_name, src);
 
         cv::warpPerspective(src, warp_out, cal_mat, Size(720,480));
+        
+        cvtColor( warp_out, warp_out, CV_BGR2HSV ); // Convert to HSV
         imshow(warped_window, warp_out);
+
         //10ms delay, exit if user presses any key
         if (waitKey(10) > 0)
             break;
