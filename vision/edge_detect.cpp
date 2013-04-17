@@ -11,7 +11,7 @@ using namespace cv;
 Mat src, src_hsv;
 Mat dst, detected_edges, tmp;
 
-
+enum _modes {still_image, live_capture} mode;
 
 pthread_mutex_t src_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -131,95 +131,90 @@ int main( int argc, char** argv )
     //pthread_t warp_thread;
     //CvCapture *capture = 0;
     Mat warp_out, cal_mat;
+    VideoCapture *cap;
 
+    if (argc > 1) {
+	    /// Load an image
+	    printf("Loading image...");
+	    tmp = imread( argv[1] );
+	    cv::resize(tmp, src, Size(round(0.25*tmp.cols), round(0.25*tmp.rows)), 0, 0);
+	    printf("Done\n");
+	    mode = still_image;
+    } else {
+	    mode = live_capture;
+	    printf("Opening camera...");
+	    cap = new VideoCapture(0);
+	    if (!cap->isOpened()) {
+		    printf("Failed. Terminating\n");
+		    return -1;
+	    }
+	    printf("Done\n");
 
-    /// Load an image
-    //tmp = imread( argv[1] );
+	    printf("Capturing from cam 0...");
+	    *cap >> src;
 
+    }
 
-    printf("Opening camera...");
-    VideoCapture cap(0);
-    if (!cap.isOpened()) {
-         printf("Failed. Terminating\n");
-         return -1;
-     }
-    printf("Done\n");
-
-    /// Create windows
-    namedWindow( window_name, CV_WINDOW_AUTOSIZE );
-
-    printf("Window created\n");
-   
-    //waitKey(0);
-    //exit(0);
     
-    /// Register mouse callback function
-    cvSetMouseCallback(window_name, mouseEvent, 0);
-
-    printf("Capturing from cam 0...");
-
-    cap >> src;
-
     if( !src.data ) {
 	    printf("Failed\n");
 	    goto _cleanup;
     }
-
-    //cv::resize(tmp, src, Size(round(0.25*tmp.cols), round(0.25*tmp.rows)), 0, 0);
-
     printf("Done\n");
 
-//    /// Create a matrix of the same type and size as src (for dst)
-//    //dst.create( src.size(), src.type() );
-//    warp_out.create(src.size(), src.type());
-
-    /// Convert the image to HSV
-    //cvtColor( src, src, CV_BGR2HSV );
-
+    /// Create windows
+    namedWindow( window_name, CV_WINDOW_AUTOSIZE );
+    printf("Window created\n");
+   
+    /// Register mouse callback function
+    cvSetMouseCallback(window_name, mouseEvent, 0);
+    
+    
     /// Show image
     imshow(window_name, src);
 
-    //pthread_create(&cal_thread, NULL,  &calibrate_field, NULL);
     calibrate_field();
     waitKey(0);  // Block here until calibration is complete
     cal_mat = cv::getPerspectiveTransform(cal_points, cal_transform);
-
+    
     namedWindow(warped_window);
-
-    //pthread_join(cal_thread, NULL);
-
-     //pthread_create(&warp_thread, NULL,  &find_puck, NULL);
-
-    while (1) {
 	    
-        cap >> src;
+    if (mode == live_capture) {
 	    
-	    // update the global src image
-        //pthread_mutex_lock(&src_mutex);
-	    // Resize image so it fits on the screen
-        //cv::resize(tmp, src, Size(round(0.7*tmp.cols), round(0.7*tmp.rows)), 0, 0);
+	    while (1) {
+	    
+		    *cap >> src;
+	    
+		    draw_cal_lines();
 
-        //pthread_mutex_unlock(&src_mutex);
+		    imshow(window_name, src);
 
-        draw_cal_lines();
-
-        imshow(window_name, src);
-
-        cv::warpPerspective(src, warp_out, cal_mat, Size(720,480));
+		    cv::warpPerspective(src, warp_out, cal_mat, Size(720,480));
         
-        cvtColor( warp_out, warp_out, CV_BGR2HSV ); // Convert to HSV
-        imshow(warped_window, warp_out);
+		    cvtColor( warp_out, warp_out, CV_BGR2HSV ); // Convert to HSV
+		    imshow(warped_window, warp_out);
 
-        //10ms delay, exit if user presses any key
-        if (waitKey(10) > 0)
-            break;
+		    //10ms delay, exit if user presses any key
+		    if (waitKey(10) > 0)
+			    break;
+	    } // while(1)
+	    
+    } else {
+	    draw_cal_lines();
+	    imshow(window_name, src);
+	    cv::warpPerspective(src, warp_out, cal_mat, Size(720, 480));
+	    cvtColor(warp_out, warp_out, CV_BGR2HSV); // Convert to HSV
+	    imshow(warped_window, warp_out);
+	    
+	    waitKey(0);				// Wait forever for user input
     }
 
  _cleanup:
     
-    //cvReleaseCapture (&capture);
-    //pthread_join(warp_thread, NULL);
-    
+    // Free up the video capture memory
+    if (mode == live_capture) {
+	    delete(cap);
+    }
 
     printf("Exiting\n");
     return 0;
