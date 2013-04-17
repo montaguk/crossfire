@@ -10,7 +10,7 @@ using namespace cv;
 
 Mat src, src_hsv;
 Mat dst, detected_edges, tmp;
-Mat warp_out;
+
 
 
 pthread_mutex_t src_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -76,25 +76,25 @@ void calibrate_field()
 }
 
 
-// Run this a seperate thread.  Displays a window with the field's
-// adjusted perspective, and calculate the physical location
-// of the puck
-void *find_puck(void *ptr)
-{
-	 namedWindow(warped_window);
-	 Mat cal_mat = cv::getPerspectiveTransform(cal_points, cal_transform);
+//// Run this a seperate thread.  Displays a window with the field's
+//// adjusted perspective, and calculate the physical location
+//// of the puck
+//void *find_puck(void *ptr)
+//{
+//    // Put window back here if using this function
+////	 Mat cal_mat = cv::getPerspectiveTransform(cal_points, cal_transform);
 
-	 while (1) {
-		 pthread_mutex_lock(&src_mutex);
-		 cv::warpPerspective(src, warp_out, cal_mat, Size(720,480));
-		 pthread_mutex_unlock(&src_mutex);
-		 imshow(warped_window, warp_out);
+//	 while (1) {
+//		 pthread_mutex_lock(&src_mutex);
+//		 cv::warpPerspective(src, warp_out, cal_mat, Size(720,480));
+//		 pthread_mutex_unlock(&src_mutex);
+//		 imshow(warped_window, warp_out);
 
-		 if (waitKey(1) > 0)
-			 break;
-	 }
+//         if (waitKey(10) > 0)
+//			 break;
+//	 }
 
-}
+//}
 
 /**
  * @function CannyThreshold
@@ -128,8 +128,9 @@ void draw_cal_lines()
 /** @function main */
 int main( int argc, char** argv )
 {
-    pthread_t warp_thread;
+    //pthread_t warp_thread;
     //CvCapture *capture = 0;
+    Mat warp_out, cal_mat;
 
 
     /// Load an image
@@ -139,8 +140,8 @@ int main( int argc, char** argv )
     printf("Opening camera...");
     VideoCapture cap(0);
     if (!cap.isOpened()) {
-	     printf("Failed. Terminating\n");
-	     return -1;
+         printf("Failed. Terminating\n");
+         return -1;
      }
     printf("Done\n");
 
@@ -157,20 +158,20 @@ int main( int argc, char** argv )
 
     printf("Capturing from cam 0...");
 
-    //IplImage *ipl = cvQueryFrame(capture);	// Capture a frame
-    cap >> tmp;
+    cap >> src;
 
-    if( !tmp.data ) {
+    if( !src.data ) {
 	    printf("Failed\n");
 	    goto _cleanup;
     }
 
-    cv::resize(tmp, src, Size(round(0.25*tmp.cols), round(0.25*tmp.rows)), 0, 0);
+    //cv::resize(tmp, src, Size(round(0.25*tmp.cols), round(0.25*tmp.rows)), 0, 0);
 
     printf("Done\n");
 
-    /// Create a matrix of the same type and size as src (for dst)
-    dst.create( src.size(), src.type() );
+//    /// Create a matrix of the same type and size as src (for dst)
+//    //dst.create( src.size(), src.type() );
+//    warp_out.create(src.size(), src.type());
 
     /// Convert the image to HSV
     cvtColor( src, src_hsv, CV_BGR2HSV );
@@ -178,39 +179,43 @@ int main( int argc, char** argv )
     /// Show image
     imshow(window_name, src);
 
-    
     //pthread_create(&cal_thread, NULL,  &calibrate_field, NULL);
     calibrate_field();
+    waitKey(0);  // Block here until calibration is complete
+    cal_mat = cv::getPerspectiveTransform(cal_points, cal_transform);
 
-    waitKey(0);
+    namedWindow(warped_window);
+
     //pthread_join(cal_thread, NULL);
 
-     pthread_create(&warp_thread, NULL,  &find_puck, NULL);
+     //pthread_create(&warp_thread, NULL,  &find_puck, NULL);
 
     while (1) {
 	    
-	    cap >> tmp;
+        cap >> src;
 	    
 	    // update the global src image
-	    pthread_mutex_lock(&src_mutex);
+        //pthread_mutex_lock(&src_mutex);
 	    // Resize image so it fits on the screen
-	    cv::resize(tmp, src, Size(round(0.25*tmp.cols), round(0.25*tmp.rows)), 0, 0);
-	    pthread_mutex_unlock(&src_mutex);
+        //cv::resize(tmp, src, Size(round(0.7*tmp.cols), round(0.7*tmp.rows)), 0, 0);
 
-	    
-	    draw_cal_lines();
-	    imshow(window_name, src);
+        //pthread_mutex_unlock(&src_mutex);
 
-	    // 10ms delay, exit if user presses any key
-	    if (waitKey(10) > 0)
-		    break;
-	    
+        draw_cal_lines();
+
+        imshow(window_name, src);
+
+        cv::warpPerspective(src, warp_out, cal_mat, Size(720,480));
+        imshow(warped_window, warp_out);
+        //10ms delay, exit if user presses any key
+        if (waitKey(10) > 0)
+            break;
     }
 
  _cleanup:
     
     //cvReleaseCapture (&capture);
-    pthread_join(warp_thread, NULL);
+    //pthread_join(warp_thread, NULL);
     
 
     printf("Exiting\n");

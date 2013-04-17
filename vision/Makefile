@@ -5,7 +5,7 @@ TARGET = edge_detect
 SOURCES = $(TARGET).c
 OBJECTS = $(SOURCES:.c=.o)
 
-CFLAGS = `pkg-config --cflags opencv`
+CFLAGS = `pkg-config --cflags opencv` -g
 LIBS = `pkg-config --libs opencv` -lpthread
 
 
