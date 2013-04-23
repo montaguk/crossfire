@@ -9,7 +9,9 @@ using namespace cv;
 /// Global variables
 
 Mat src, src_hsv;
-Mat dst, detected_edges, tmp;
+Mat dst, detected_edges, tmp, warp_bin;
+Mat warp_out, cal_mat;
+
 
 enum _modes {still_image, live_capture} mode;
 
@@ -36,6 +38,7 @@ int ratio = 3;
 int kernel_size = 3;
 const char *window_name = "Raw Input";
 const char *warped_window = "Adjusted Playing Field";
+const char *bin_window = "Binary Image";
 
 
 // Mouse callback function
@@ -62,6 +65,13 @@ void mouseEvent(int evt, int x, int y, int flags, void* param){
             }
         }
     }
+}
+
+void mouseEventHSV(int evt, int x, int y, int flags, void *param) {
+	if (evt == CV_EVENT_LBUTTONDOWN) {
+		Vec3b pixel =  warp_out.at<Vec3b>(x, y);
+		printf("HSV @ (%d, %d): %d, %d, %d\n", x, y, pixel[0], pixel[1], pixel[2]);
+	}
 
 }
 
@@ -124,14 +134,21 @@ void draw_cal_lines()
     cv::line(src, cal_points[2], cal_points[0], Scalar(255,255,255));  // left bar
 }
 
+void find_puck (Mat &src, Mat &dst) {
+	// For HSV and RGB
+	//cv::inRange(src, Scalar(0,165,165), Scalar(255,255,255), dst);
+
+	// For grayscale
+	cv::inRange(src, Scalar(170), Scalar(255), dst);
+}
+
 
 /** @function main */
 int main( int argc, char** argv )
 {
     //pthread_t warp_thread;
     //CvCapture *capture = 0;
-    Mat warp_out, cal_mat;
-    VideoCapture *cap;
+	VideoCapture *cap;
 
     if (argc > 1) {
 	    /// Load an image
@@ -178,6 +195,10 @@ int main( int argc, char** argv )
     cal_mat = cv::getPerspectiveTransform(cal_points, cal_transform);
     
     namedWindow(warped_window);
+    namedWindow(bin_window);
+
+    // Set mouse callback function for warped_window
+    cvSetMouseCallback(warped_window, mouseEventHSV, 0);
 	    
     if (mode == live_capture) {
 	    
@@ -191,8 +212,10 @@ int main( int argc, char** argv )
 
 		    cv::warpPerspective(src, warp_out, cal_mat, Size(720,480));
         
-		    cvtColor( warp_out, warp_out, CV_BGR2HSV ); // Convert to HSV
+		    cvtColor( warp_out, warp_out, CV_RGB2GRAY ); // Convert to HSV
+		    find_puck(warp_out, warp_bin);
 		    imshow(warped_window, warp_out);
+		    imshow(bin_window, warp_bin);
 
 		    //10ms delay, exit if user presses any key
 		    if (waitKey(10) > 0)
@@ -203,8 +226,10 @@ int main( int argc, char** argv )
 	    draw_cal_lines();
 	    imshow(window_name, src);
 	    cv::warpPerspective(src, warp_out, cal_mat, Size(720, 480));
-	    cvtColor(warp_out, warp_out, CV_BGR2HSV); // Convert to HSV
+	    cvtColor(warp_out, warp_out, CV_RGB2GRAY); // Convert to HSV
+	    find_puck(warp_out, warp_bin);
 	    imshow(warped_window, warp_out);
+	    imshow(bin_window, warp_bin);
 	    
 	    waitKey(0);				// Wait forever for user input
     }
