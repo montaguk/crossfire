@@ -6,6 +6,7 @@
 
 using namespace cv;
 
+
 /// Global variables
 
 Mat src, src_hsv;
