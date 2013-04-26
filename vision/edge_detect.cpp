@@ -22,6 +22,8 @@ struct area_map {
 	int index;
 };
 
+
+// Global variables
 // function for sorting area array
 bool area_sorter(struct area_map i, struct area_map j) {
 	return i.area < j.area;
