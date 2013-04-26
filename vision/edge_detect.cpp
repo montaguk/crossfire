@@ -4,14 +4,33 @@
 #include <stdio.h>
 #include <pthread.h>
 
+#define DEBUG
+
+#ifdef DEBUG
+#warning Building in DEBUG mode
+#endif
+
 using namespace cv;
 
-/// Global variables
+struct puck_location {
+	int x;
+	int y;
+};
 
+struct area_map {
+	double area;
+	int index;
+};
+
+// function for sorting area array
+bool area_sorter(struct area_map i, struct area_map j) {
+	return i.area < j.area;
+}
+
+/// Global variables
 Mat src, src_hsv;
 Mat dst, detected_edges, tmp, warp_bin;
 Mat warp_out, cal_mat;
-
 
 enum _modes {still_image, live_capture} mode;
 
@@ -39,6 +58,7 @@ int kernel_size = 3;
 const char *window_name = "Raw Input";
 const char *warped_window = "Adjusted Playing Field";
 const char *bin_window = "Binary Image";
+const char *gray_window = "Grayscale Image";
 
 
 // Mouse callback function
@@ -134,14 +154,72 @@ void draw_cal_lines()
     cv::line(src, cal_points[2], cal_points[0], Scalar(255,255,255));  // left bar
 }
 
-void find_puck (Mat &src, Mat &dst) {
-	// For HSV and RGB
-	//cv::inRange(src, Scalar(0,165,165), Scalar(255,255,255), dst);
+void find_puck (Mat &src, Mat &dst, struct puck_location pl) {
+	//printf("Building binary image...");
+	Mat gray;
+	vector<vector<Point> > contours;
+	vector<Point> centers;
+	vector<struct puck_location> pucks;
+	int i;
 
-	// For grayscale
-	cv::inRange(src, Scalar(170), Scalar(255), dst);
+	// Convert to grayscale
+	cvtColor(src, gray, CV_RGB2GRAY);
+
+	// maybe blur here? -montaguk
+	
+	// Find the average color of the playing field
+	Scalar mean, std_dev, tmp;
+	cv::meanStdDev(gray, mean, std_dev);
+
+#ifdef DEBUG
+	printf("thresh_min: %f, ", mean[0] + (2 * std_dev[0]));
+#endif
+
+	// Create binary image from grayscale
+	cv::multiply(std_dev, Scalar(1.5), tmp);
+	
+	cv::inRange(gray, mean + tmp, Scalar(255), dst);
+	//printf("Done\n");
+
+#ifdef DEBUG
+	dst.copyTo(warp_bin);
+	imshow(bin_window, warp_bin);
+	imshow(gray_window, gray);
+#endif
+	
+	
+	//printf("Searching for contours...");
+	// Find the pucks on the field using contours
+	cv::findContours(dst, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+	
+
+	// Needs some more work here -montaguk
+	// Create a lookup table that maps areas to vectors
+	/*for (i = 0; i < contours.size(); i++) {
+		
+		contourArea(contours[i]); // might be able to get orientation -montaguk
+
+
+		}
+	*/
+	cv::drawContours(src, contours, -1, Scalar(0, 0, 255));
+
+	// Find moments of all contours
+	vector<Moments> mu(contours.size());
+	for (i = 0; i < contours.size(); i++) {
+		mu[i] = cv::moments(contours[i], true);
+	}
+
+	// Find the mass centers for all moments
+	vector<Point2f> mc(contours.size());
+	for (i = 0; i < contours.size(); i++) {
+		mc[i] = Point2f(mu[i].m10/mu[i].m00, mu[i].m01/mu[i].m00);
+		
+		// Draw circles around the centers
+		cv::circle(src, mc[i], 4, Scalar(255, 0, 0), -1, 8, 0);
+	}
+
 }
-
 
 /** @function main */
 int main( int argc, char** argv )
@@ -149,6 +227,7 @@ int main( int argc, char** argv )
     //pthread_t warp_thread;
     //CvCapture *capture = 0;
 	VideoCapture *cap;
+	struct puck_location pl;	// Where is the puck?
 
     if (argc > 1) {
 	    /// Load an image
@@ -169,7 +248,6 @@ int main( int argc, char** argv )
 
 	    printf("Capturing from cam 0...");
 	    *cap >> src;
-
     }
 
     
@@ -188,14 +266,22 @@ int main( int argc, char** argv )
     
     
     /// Show image
-    imshow(window_name, src);
-
     calibrate_field();
-    waitKey(0);  // Block here until calibration is complete
+    while(1) {
+	    *cap >> src; 			// Keep the sceen refreshed
+	    imshow(window_name, src);
+	    if (waitKey(10) > 0) {
+		    break;
+	    }
+    }
     cal_mat = cv::getPerspectiveTransform(cal_points, cal_transform);
     
     namedWindow(warped_window);
+
+#ifdef DEBUG
     namedWindow(bin_window);
+    namedWindow(gray_window);
+#endif
 
     // Set mouse callback function for warped_window
     cvSetMouseCallback(warped_window, mouseEventHSV, 0);
@@ -206,31 +292,31 @@ int main( int argc, char** argv )
 	    
 		    *cap >> src;
 	    
-		    draw_cal_lines();
-
-		    imshow(window_name, src);
-
 		    cv::warpPerspective(src, warp_out, cal_mat, Size(720,480));
+
+		    draw_cal_lines();
+		    imshow(window_name, src);
         
-		    cvtColor( warp_out, warp_out, CV_RGB2GRAY ); // Convert to HSV
-		    find_puck(warp_out, warp_bin);
+		    find_puck(warp_out, warp_bin, pl);
 		    imshow(warped_window, warp_out);
-		    imshow(bin_window, warp_bin);
 
 		    //10ms delay, exit if user presses any key
 		    if (waitKey(10) > 0)
 			    break;
+
+#ifdef DEBUG
+		    printf("\n");
+#endif
+		    
 	    } // while(1)
 	    
     } else {
+	    cv::warpPerspective(src, warp_out, cal_mat, Size(720, 480));
 	    draw_cal_lines();
 	    imshow(window_name, src);
-	    cv::warpPerspective(src, warp_out, cal_mat, Size(720, 480));
-	    cvtColor(warp_out, warp_out, CV_RGB2GRAY); // Convert to HSV
-	    find_puck(warp_out, warp_bin);
+	    find_puck(warp_out, warp_bin, pl);
 	    imshow(warped_window, warp_out);
-	    imshow(bin_window, warp_bin);
-	    
+
 	    waitKey(0);				// Wait forever for user input
     }
 
