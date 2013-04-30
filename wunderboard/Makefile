@@ -12,7 +12,7 @@
 #----------------------------------------------------------------------------
 
 # Target file name.
-TARGET = servo_test 
+TARGET = servo_control
 
 # List C source files here.
 SRC =	$(TARGET).c \
