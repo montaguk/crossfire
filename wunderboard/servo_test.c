@@ -28,7 +28,8 @@ uint8_t main(){
 	tcnt3_init(); //initialize pwm
 	switch_state_7 = bit_is_set(PINA,7); //get initial state of the servo switch
 	if(switch_state_7 != 0){
-		OCR3A = 1200;			//if state is high, set servo to 180 degrees
+		//OCR3A = 1200;			//if state is high, set servo to 180 degrees
+		OCR3A = 700;			//if state is high, set servo to 180 degrees
 	}
 
 	PORTC |= (bit_is_set(PINA,6)<<PC5);	//set solenoid outputs equal depending on initial switch state
@@ -44,7 +45,7 @@ uint8_t main(){
 			if(switch_state_7 == 0){	//set servo position appropriately
 				OCR3A = 300;
 			}else{
-				OCR3A = 1200;
+				OCR3A = 700;
 			}
 			old_switch_state_7 = switch_state_7;
 		}

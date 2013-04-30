@@ -27,11 +27,6 @@ uint8_t main(){
 	PORTD &= 0x0F; //set outputs for solenoid initially low
 
 	tcnt3_init(); //initialize pwm
-	/*switch_state_7 = bit_is_set(PINA,7); //get initial state of the servo switch
-	if(switch_state_7 != 0){
-		OCR3A = 1200;			//if state is high, set servo to 180 degrees
-	}
-	*/
 	
 	old_switch_state_0 = 0;//save state in old state to compare to in loop
 	old_switch_state_7 = 0;	//save state in old state to compare to in loop
@@ -40,39 +35,25 @@ uint8_t main(){
 		//chk_buttons();		//check the current state
 		uint8_t buttons = PINA;
 		PORTC = buttons;
-		//if(switch_state_7 != old_switch_state_7){//if the button is pushed and the other is not
-			if(buttons & 0x80){
-				PORTD |= 0b10010000;	//set outputs high to move right
-			}
-			else{
-				PORTD &= 0b01101111;	//set outputs high to move right
-			}
-			//PORTD &= 0b00001111;	//set outputs low to stop moving right
-			old_switch_state_7 = switch_state_7;
-	//	}
-		//if(switch_state_0 != old_switch_state_0){//if the button is pushed and the other is not
-			if(buttons & 0x01){
-				PORTD |= 0b01100000;	//set outputs high to move right
-			}else{
-				PORTD &= 0b10111111;	//set outputs high to move right
-			}		
-			old_switch_state_0 = switch_state_0;
-
-			if(buttons & 0x02){
-				PORTD &= 0b11011111;	//set outputs high to move right
-				PORTD |= 0b10000000;
-				_delay_ms(300);
-			}
-			old_switch_state_0 = switch_state_0;
-	/*	if((switch_state_2 != old_switch_state_2) ){//if the button is pushed and the other is not
-			if(switch_state_2 == 0){
-				PORTD &= 0x00;	//set outputs low to stop moving right
-			}else{
-				PORTD |= 0x10;	//set outputs high to move right
-			}
-			old_switch_state_2 = switch_state_2;
+		if(buttons & 0x80){
+				PORTD |= 0b10010000;
 		}
-	*/
+		else{
+				PORTD &= 0b01101111;
+		}
+			//PORTD &= 0b00001111;	//set outputs low to stop moving right
+		if(buttons & 0x01){
+				PORTD |= 0b01100000;	//set outputs high to move right
+		}else{
+				PORTD &= 0b11011111;	//set outputs high to move right
+		}		
+
+		if(buttons & 0x02){
+			//PORTD &= 0b11011111;	//set outputs high to move right
+			PORTD |= 0b00010000;
+			_delay_ms(300);
+			PORTD &= 0x00;
+		}
 	}
 }
 	
