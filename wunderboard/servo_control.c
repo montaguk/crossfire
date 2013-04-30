@@ -135,12 +135,12 @@ uint8_t main(){
 	chk_buttons();		//check the current state
 	if(switch_state_servo){//if the button is pressed
 		if(servo_dir == 1){//if servo is going to the right
-			OCR1A += 10;
+			OCR1A += 1;
 			if(OCR1A == 700){//if max rightward angle is reached
 				servo_dir = 0;//rotate to the left next time
 			}
 		}else{
-			OCR1A -= 10;
+			OCR1A -= 1;
 			if(OCR1A == 300){//if max left angle is reached
 				servo_dir = 1;//rotate to the right next time
 			}
