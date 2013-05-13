@@ -31,13 +31,10 @@ MainWindow::MainWindow(QWidget *parent) :
 	// Add the line of fire to the scene
 	line = scene.addLine(0,0,10,10);
 
-	// Add the pucks to the scene
+	// Init array of pucks
 	for (i = 0; i < NUM_PUCKS; i++) {
-		puck_img[i] = scene.addEllipse(0,0,10,10);
+		puck_img[i] = 0;
 	}
-
-	// Set initial states for all gui components
-	update_gui();
 
 	// Keep track of the pucks
 	printf("Launching puck update thread...");
@@ -45,6 +42,9 @@ MainWindow::MainWindow(QWidget *parent) :
 	memset(pucks, 0, NUM_PUCKS * sizeof(QPoint *));
 	puck_updater = QtConcurrent::run(this, &MainWindow::update_pucks);
 	printf("Done\n");
+
+	// Set initial states for all gui components
+	update_gui();
 
 	// Make the timer
 	screen_refresh_timer = new QTimer(this);
@@ -246,10 +246,20 @@ void MainWindow::update_line() {
 void MainWindow::draw_pucks() {
 	int i;
 
+	// Remove existing pucks
+	for (i = 0; i < NUM_PUCKS; i++) {
+		if (puck_img[i] != 0) {
+			scene.removeItem(puck_img[i]);
+			puck_img[i] = 0;
+		}
+	}
+
+	// Draw newly found pucks
 	for (i = 0; i < NUM_PUCKS; i++) {
 		if (pucks[i] != 0) {
-			puck_img[i]->setX(pucks[i]->x());
-			puck_img[i]->setY(pucks[i]->y());
+			puck_img[i] =
+					scene.addEllipse(pucks[i]->x(),
+									 pucks[i]->y(), 10, 10);
 		}
 	}
 }
