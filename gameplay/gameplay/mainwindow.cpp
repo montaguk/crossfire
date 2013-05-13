@@ -12,6 +12,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	QMainWindow(parent),
 	ui(new Ui::MainWindow)
 {
+	int i;
 	ui->setupUi(this);
 
 	// Start the connection to the robot
@@ -30,6 +31,11 @@ MainWindow::MainWindow(QWidget *parent) :
 	// Add the line of fire to the scene
 	line = scene.addLine(0,0,10,10);
 
+	// Add the pucks to the scene
+	for (i = 0; i < NUM_PUCKS; i++) {
+		puck_img[i] = scene.addEllipse(0,0,10,10);
+	}
+
 	// Set initial states for all gui components
 	update_gui();
 
@@ -40,11 +46,18 @@ MainWindow::MainWindow(QWidget *parent) :
 	puck_updater = QtConcurrent::run(this, &MainWindow::update_pucks);
 	printf("Done\n");
 
+	// Make the timer
+	screen_refresh_timer = new QTimer(this);
+
 	// Connect various slots
 	connect(&robot,SIGNAL(lineReceived(QString)),
 			this,SLOT(onLineReceived(QString)));
 
-	// Setup listening socket for remote / automated control
+	connect(screen_refresh_timer, SIGNAL(timeout()),
+			this, SLOT(refresh_field()));
+
+	// Start the timer
+	screen_refresh_timer->start(REFRESH_RATE);
 
 
 }
@@ -54,6 +67,11 @@ MainWindow::~MainWindow()
 	printf("Kill the update thread...");
 	continue_update = false;
 	puck_updater.waitForFinished();
+	printf("Done\n");
+
+	printf("Stop the timer...");
+	screen_refresh_timer->stop();
+	delete screen_refresh_timer;
 	printf("Done\n");
 
 	for (int i = 0; i < NUM_PUCKS; i++) {
@@ -71,6 +89,9 @@ MainWindow::~MainWindow()
 // the local directory called fifo.  This should be
 // created before starting the program.
 void MainWindow::update_pucks() {
+	int i;
+	static int num_pucks = 0;
+
 	// Open the fifo
 	printf("Opening Fifo...");
 	QFile fifo("./fifo");
@@ -93,23 +114,26 @@ void MainWindow::update_pucks() {
 			qint8 puck_num = buf[0];
 
 			if (puck_num == -1) {
-				printf("no pucks found\n");
+				printf("No pucks found\n");
 				continue;
 			}
 
-			qint16 x = (buf[1] << 8) | (buf[2]);
-			qint16 y = (buf[3] << 8) | (buf[4]);
+			printf("0x%02x 0x%02x 0x%02x 0x%02x\n", buf[1], buf[2], buf[3], buf[4]);
+
+			quint16 x = ((buf[1] & 0x00FF) << 8) | ((buf[2]) & 0x00FF);
+			quint16 y = ((buf[3] & 0x00FF) << 8) | ((buf[4]) & 0x00FF);
 
 			printf("updating puck %d at position (%d, %d)\n", puck_num, x, y);
 
 			if (pucks[puck_num] == 0) {
 				pucks[puck_num] = new QPoint(x, y);
+				num_pucks++;
 			} else {
 				pucks[puck_num]->setX(x);
 				pucks[puck_num]->setY(y);
 			}
 		} else {
-			printf("No bytes read\n");
+			printf("FIFO has been closed\n");
 			break;
 		}
 	}
@@ -217,10 +241,24 @@ void MainWindow::update_line() {
 	line = scene.addLine(l);
 }
 
+
+// Update puck locations
+void MainWindow::draw_pucks() {
+	int i;
+
+	for (i = 0; i < NUM_PUCKS; i++) {
+		if (pucks[i] != 0) {
+			puck_img[i]->setX(pucks[i]->x());
+			puck_img[i]->setY(pucks[i]->y());
+		}
+	}
+}
+
 // Update the field view
 void MainWindow::update_field() {
 	update_rect();
 	update_line();
+	draw_pucks();
 
 	scene.update();
 	ui->field->setScene(&scene);
@@ -233,4 +271,8 @@ void MainWindow::update_gui() {
 	update_tarDial();
 	update_curDial();
 	update_field();
+}
+
+void MainWindow::refresh_field() {
+	update_gui();
 }

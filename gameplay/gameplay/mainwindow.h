@@ -8,10 +8,12 @@
 #include <QFuture>
 #include "robot.h"
 
-#define FIELD_H 490
+#define FIELD_H 430
 #define FIELD_W 240
 
 #define NUM_PUCKS 2
+
+#define REFRESH_RATE 30  // in ms
 
 namespace Ui {
 class MainWindow;
@@ -38,6 +40,7 @@ private:
 	void update_field();
 	void update_line();
 	void update_rect();
+	void draw_pucks();
 
 	Ui::MainWindow *ui;
 	QGraphicsScene scene;
@@ -46,11 +49,14 @@ private:
 	Robot robot;
 
 	QPoint *pucks[NUM_PUCKS];
+	QGraphicsEllipseItem *puck_img[NUM_PUCKS];
 
 	// Keeps track of the puck updating thread
 	QFuture<void> puck_updater;
 	void update_pucks();
 	bool continue_update;
+
+	QTimer *screen_refresh_timer;
 
 private slots:
 	void on_fireButton_clicked();
@@ -59,6 +65,7 @@ private slots:
 	void onLineReceived(QString data);
 	void on_slider_sliderMoved(int value);
 	void on_tarDial_sliderMoved(int value);
+	void refresh_field();
 };
 
 #endif // MAINWINDOW_H

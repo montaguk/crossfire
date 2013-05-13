@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
+#include <iostream>
+#include <fstream>
 
 #define DEBUG
 //#define DEBUG2
@@ -16,6 +18,8 @@
 #define FIELD_W 230
 #define FIELD_H 420
 
+#define FIFO_PATH "../gameplay/gameplay/fifo"
+
 #ifdef DEBUG
 #warning Building in DEBUG mode
 #endif
@@ -25,11 +29,6 @@ using namespace cv;
 // Global variables
 // function for sorting area array
 
-struct puck_location {
-	int x;
-	int y;
-};
-
 bool area_sorter_decending(Moments i, Moments j) {
 	return i.m00 > j.m00;
 }
@@ -38,6 +37,8 @@ bool area_sorter_decending(Moments i, Moments j) {
 Mat src, src_hsv;
 Mat dst, detected_edges, tmp, warp_bin;
 Mat warp_out, cal_mat;
+
+std::ofstream fifo;
 
 enum _modes {still_image, live_capture} mode;
 
@@ -166,7 +167,6 @@ void find_puck (Mat &src, Mat &dst, vector<Point2f> &pl) {
 	Mat gray;
 	vector<vector<Point> > contours;
 	vector<Point> centers;
-	vector<struct puck_location> pucks;
 	int i;
 
 	// Convert to grayscale
@@ -239,13 +239,43 @@ void find_puck (Mat &src, Mat &dst, vector<Point2f> &pl) {
 
 }
 
+// Write puck locations in pl to the file named fifo
+// located in the current directory
+void write_fifo(std::vector<Point2f> pl) {
+	int i;
+	
+	// No pucks
+	if (pl.size() == 0) {
+		fifo.put((int8_t) -1);
+		fifo.put('\n');
+		fifo.flush();
+		return;
+	}
+	
+	for (i = 0; i < pl.size(); i++) {
+		uint8_t x1 = (((uint16_t)pl[i].x) & 0xFF00) >> 8;
+		uint8_t x0 = ((uint8_t)pl[i].x) & 0x00FF;
+		uint8_t y1 = (((uint16_t)pl[i].y) & 0xFF00) >> 8;
+		uint8_t y0 = ((uint8_t)pl[i].y) & 0x00FF;
+
+		printf("Sending: 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", i, x1, x0, y1, y0);
+		
+		fifo.put(i);
+		fifo.put(x1);
+		fifo.put(x0);
+		fifo.put(y1);
+		fifo.put(y0);
+		fifo.put('\n');
+		fifo.flush();			// Write everything
+	}
+}
+
 /** @function main */
 int main( int argc, char** argv )
 {
     //pthread_t warp_thread;
     //CvCapture *capture = 0;
 	VideoCapture *cap;
-	vector<Point2f> pl;	// Where are the pucks?
 
     if (argc > 1) {
 	    /// Load an image
@@ -256,6 +286,15 @@ int main( int argc, char** argv )
 	    mode = still_image;
     } else {
 	    mode = live_capture;
+	    
+	    printf("Opening fifo for writing...");
+	    fifo.open(FIFO_PATH);
+	    if (!fifo.is_open()) {
+		    printf("Failed.\n");
+		    goto _cleanup;
+	    }
+	    printf("Done\n");
+	    
 	    printf("Opening camera...");
 	    cap = new VideoCapture(CAM_NUM);
 	    if (!cap->isOpened()) {
@@ -313,6 +352,7 @@ int main( int argc, char** argv )
     if (mode == live_capture) {
 	    
 	    while (1) {
+		    vector<Point2f> pl;	// Where are the pucks?
 	    
 		    *cap >> src;
 	    
@@ -323,7 +363,7 @@ int main( int argc, char** argv )
         
 		    find_puck(warp_out, warp_bin, pl);
 		    imshow(warped_window, warp_out);
-
+		    write_fifo(pl);
 		    //10ms delay, exit if user presses any key
 		    if (waitKey(10) > 0)
 			    break;
@@ -335,6 +375,7 @@ int main( int argc, char** argv )
 	    } // while(1)
 	    
     } else {
+	    vector<Point2f> pl;	// Where are the pucks?
 	    cv::warpPerspective(src, warp_out, cal_mat, Size(FIELD_W, FIELD_H));
 	    draw_cal_lines();
 	    imshow(window_name, src);
