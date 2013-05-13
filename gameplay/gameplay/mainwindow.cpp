@@ -88,9 +88,15 @@ void MainWindow::update_pucks() {
 	// first byte on a line is puck number
 	// next two bytes are x coord, followed by two bytes of y coord
 	// [puck num, x1, x0, y1, y0, \n]
-	while (continue_update) {
+	while (continue_update) {		
 		if (fifo.readLine(buf, 10) > 0) {
 			qint8 puck_num = buf[0];
+
+			if (puck_num == -1) {
+				printf("no pucks found\n");
+				continue;
+			}
+
 			qint16 x = (buf[1] << 8) | (buf[2]);
 			qint16 y = (buf[3] << 8) | (buf[4]);
 
