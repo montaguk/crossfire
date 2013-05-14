@@ -7,6 +7,7 @@
 #include <QGraphicsRectItem>
 #include <QFuture>
 #include "robot.h"
+#include "puck.h"
 
 #define FIELD_H 430
 #define FIELD_W 240
@@ -48,8 +49,9 @@ private:
 	QGraphicsLineItem *line;
 	Robot robot;
 
-	QPoint *pucks[NUM_PUCKS];
+	Puck *pucks[NUM_PUCKS];
 	QGraphicsEllipseItem *puck_img[NUM_PUCKS];
+	QGraphicsLineItem *fv[NUM_PUCKS];
 
 	// Keeps track of the puck updating thread
 	QFuture<void> puck_updater;

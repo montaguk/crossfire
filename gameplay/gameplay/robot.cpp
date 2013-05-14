@@ -13,6 +13,21 @@ Robot::Robot() : QAsyncSerial()
 	tar_deg = 0;
 }
 
+
+// Send command to Wunderboard to move robot
+// Updates target position and target deg
+void Robot::move() {
+	printf("Moving robot to %d, at %d degrees\n", tar_lat_pos, tar_deg);
+	QString tmp;
+	tmp.append(QChar('@'));
+	tmp.append(QChar(tar_lat_pos));
+	tmp.append(QChar(tar_deg));
+	//this->write("@");
+	//this->write(tar_lat_pos);
+	//this->write(tar_deg);
+	this->write(tmp);
+}
+
 void Robot::set_cur_pos(int l) {
 	if (l > MAX_LAT_POS) {
 		cur_lat_pos = MAX_LAT_POS;

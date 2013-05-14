@@ -34,6 +34,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	// Init array of pucks
 	for (i = 0; i < NUM_PUCKS; i++) {
 		puck_img[i] = 0;
+		fv[i] = 0;
 	}
 
 	// Keep track of the pucks
@@ -77,6 +78,14 @@ MainWindow::~MainWindow()
 	for (int i = 0; i < NUM_PUCKS; i++) {
 		if (pucks[i] != NULL) {
 			delete pucks[i];
+		}
+
+		if (puck_img[i] != NULL) {
+			delete puck_img[i];
+		}
+
+		if (fv[i] != NULL) {
+			delete fv[i];
 		}
 	}
 	delete ui;
@@ -125,13 +134,22 @@ void MainWindow::update_pucks() {
 
 			printf("updating puck %d at position (%d, %d)\n", puck_num, x, y);
 
-			if (pucks[puck_num] == 0) {
-				pucks[puck_num] = new QPoint(x, y);
-				num_pucks++;
-			} else {
-				pucks[puck_num]->setX(x);
-				pucks[puck_num]->setY(y);
+			if (puck_num < NUM_PUCKS) {
+				if (pucks[puck_num] == 0) {
+					pucks[puck_num] = new Puck(x, y);
+					num_pucks++;
+				} else {
+					pucks[puck_num]->pos->setX(x);
+					pucks[puck_num]->pos->setY(y);
+				}
+
+				// Find firing vector for this puck
+				pucks[puck_num]->firing_vector =
+						new QLine(QPoint(robot.get_cur_pos() + 5, FIELD_H - 10),
+								  *pucks[puck_num]->pos);
+
 			}
+
 		} else {
 			printf("FIFO has been closed\n");
 			break;
@@ -156,12 +174,17 @@ void MainWindow::on_refreshButton_clicked() {
 void MainWindow::onLineReceived(QString data)
 {
 	// TODO: Parse this data from serial packet -montaguk
-	int cur_lat_pos = 10;//robot.get_cur_pos();
-	int cur_deg = 90;//robot.get_cur_deg();
+	//int cur_lat_pos = 10;//robot.get_cur_pos();
+	//int cur_deg = 90;//robot.get_cur_deg();
+	if (data.length() >= 2) {
+		int cur_lat_pos = (int)data[0].digitValue();
+		int cur_deg = (int)data[1].digitValue();
 
-	robot.set_cur_pos(cur_lat_pos);
-	robot.set_cur_deg(cur_deg);
+		printf("Robot pos is %d at %d degrees\n", cur_lat_pos, cur_deg);
 
+		robot.set_cur_pos(cur_lat_pos);
+		robot.set_cur_deg(cur_deg);
+	}
 	update_gui();
 }
 
@@ -183,8 +206,9 @@ void MainWindow::on_openCloseButton_clicked()
 // Value is the new value of the slider
 void MainWindow::on_slider_sliderMoved(int value) {
 	robot.set_tar_pos(value);
-	robot.set_cur_pos(value); // remove this -montaguk
+	//robot.set_cur_pos(value); // remove this -montaguk
 	update_gui();
+	robot.move();
 }
 
 // Handle signals emmitted by the dial
@@ -192,8 +216,9 @@ void MainWindow::on_slider_sliderMoved(int value) {
 // Subtract 90 deg to adjust for GUI
 void MainWindow::on_tarDial_sliderMoved(int value) {
 	robot.set_tar_deg(value - 90);
-	robot.set_cur_deg(value - 90); // remove this -montaguk
+	//robot.set_cur_deg(value - 90); // remove this -montaguk
 	update_gui();
+	robot.move();
 }
 
 void MainWindow::update_curPos_label() {
@@ -248,9 +273,17 @@ void MainWindow::draw_pucks() {
 
 	// Remove existing pucks
 	for (i = 0; i < NUM_PUCKS; i++) {
+		// Remove pucks
 		if (puck_img[i] != 0) {
 			scene.removeItem(puck_img[i]);
 			puck_img[i] = 0;
+
+		}
+
+		// Remove firing vectors
+		if (fv[i] != 0) {
+			scene.removeItem(fv[i]);
+			fv[i] = 0;
 		}
 	}
 
@@ -258,8 +291,9 @@ void MainWindow::draw_pucks() {
 	for (i = 0; i < NUM_PUCKS; i++) {
 		if (pucks[i] != 0) {
 			puck_img[i] =
-					scene.addEllipse(pucks[i]->x(),
-									 pucks[i]->y(), 10, 10);
+					scene.addEllipse(pucks[i]->pos->x(),
+									 pucks[i]->pos->y(), 10, 10);
+			fv[i] = scene.addLine(*pucks[i]->firing_vector);
 		}
 	}
 }

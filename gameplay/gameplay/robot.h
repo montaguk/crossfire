@@ -2,6 +2,7 @@
 #define ROBOT_H
 
 #include "QAsyncSerial.h"
+#include <QPoint>
 
 #define MAX_LAT_POS 230
 #define MIN_LAT_POS 0
@@ -13,6 +14,7 @@ class Robot : public QAsyncSerial
 public:
 	Robot();
 	void fire();
+	void move();
 
 	void set_cur_pos(int l);
 	void set_cur_deg(int d);
@@ -28,6 +30,8 @@ public:
 	int get_lat_max();
 	int get_deg_min();
 	int get_deg_max();
+
+	QPoint get_cur_barrel();
 
 private:
 	int cur_lat_pos;
