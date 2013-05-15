@@ -42,6 +42,9 @@ private:
 	void update_line();
 	void update_rect();
 	void draw_pucks();
+	void update_cur_target();
+	void scene_clicked(QEvent *ev);
+	void update_shootingAt_label();
 
 	Ui::MainWindow *ui;
 	QGraphicsScene scene;
@@ -52,6 +55,12 @@ private:
 	Puck *pucks[NUM_PUCKS];
 	QGraphicsEllipseItem *puck_img[NUM_PUCKS];
 	QGraphicsLineItem *fv[NUM_PUCKS];
+	QPoint *cur_tar;
+	QLineF *cur_fv;
+	QGraphicsLineItem *current_fv;
+	QGraphicsEllipseItem *current_tar;
+
+	bool fire;  // Should we be shooting?
 
 	// Keeps track of the puck updating thread
 	QFuture<void> puck_updater;
@@ -60,6 +69,8 @@ private:
 
 	QTimer *screen_refresh_timer;
 
+	enum _targets{PUCK1, PUCK2, MANUAL, NONE} shooting_at;
+
 private slots:
 	void on_fireButton_clicked();
 	void on_refreshButton_clicked();
@@ -67,7 +78,13 @@ private slots:
 	void onLineReceived(QString data);
 	void on_slider_valueChanged(int value);
 	void on_tarDial_sliderMoved(int value);
+	void on_puck1Button_clicked();
+	void on_puck2Button_clicked();
 	void refresh_field();
+
+protected:
+	bool eventFilter(QObject *obj, QEvent *ev);
+
 };
 
 #endif // MAINWINDOW_H

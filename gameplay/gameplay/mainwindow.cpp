@@ -7,6 +7,7 @@
 #include <QGraphicsLineItem>
 #include <QFile>
 #include <QtCore>
+#include <QGraphicsSceneMouseEvent>
 
 MainWindow::MainWindow(QWidget *parent) :
 	QMainWindow(parent),
@@ -37,6 +38,14 @@ MainWindow::MainWindow(QWidget *parent) :
 		fv[i] = 0;
 	}
 
+	// Init current firing info
+	fire = false;
+	current_tar = 0;
+	cur_fv = 0;
+	current_fv = 0;
+	//cur_tar = 0;
+	shooting_at = NONE;
+
 	// Keep track of the pucks
 	printf("Launching puck update thread...");
 	continue_update = true;
@@ -57,10 +66,11 @@ MainWindow::MainWindow(QWidget *parent) :
 	connect(screen_refresh_timer, SIGNAL(timeout()),
 			this, SLOT(refresh_field()));
 
+	// Add event handler for grabbing mouse clicks
+	scene.installEventFilter(this);
+
 	// Start the timer
 	screen_refresh_timer->start(REFRESH_RATE);
-
-
 }
 
 MainWindow::~MainWindow()
@@ -88,7 +98,34 @@ MainWindow::~MainWindow()
 			delete fv[i];
 		}
 	}
+
+	if (current_tar != 0) {
+		delete current_tar;
+	}
+
+	if (cur_fv != 0) {
+		delete cur_fv;
+	}
+
+	if (current_fv != 0) {
+		delete current_fv;
+	}
 	delete ui;
+}
+
+bool MainWindow::eventFilter(QObject *obj, QEvent *ev) {
+	if (obj == &scene) {
+		//printf("Handling event %d\n", ev->type());
+		if (ev->type() == QEvent::GraphicsSceneMousePress) {
+			scene_clicked(ev);
+			return true;
+		} else {
+			return false;
+		}
+	} else {
+		// Pass event to parent class
+		return QMainWindow::eventFilter(obj, ev);
+	}
 }
 
 // Function to continuously update the current position of
@@ -145,8 +182,20 @@ void MainWindow::update_pucks() {
 
 				// Find firing vector for this puck
 				pucks[puck_num]->firing_vector =
-						new QLine(QPoint(robot.get_cur_pos() + 5, FIELD_H - 10),
+						new QLineF(QPoint(robot.get_cur_pos() + 5, FIELD_H - 10),
 								  pucks[puck_num]->center());
+
+				// If we are shooting at this puck, also
+				// update the current target info
+				if (shooting_at == puck_num) {
+					cur_tar = pucks[puck_num]->pos;
+
+					if (ui->lmove_cbox->isChecked()) {
+						robot.set_tar_pos(pucks[puck_num]->pos->x());
+					}
+
+					cur_fv = pucks[puck_num]->firing_vector;
+				}
 
 			}
 
@@ -167,6 +216,18 @@ void MainWindow::on_fireButton_clicked() {
 // Update the screen
 void MainWindow::on_refreshButton_clicked() {
 	update_gui();
+}
+
+// Select puck 1 as target
+void MainWindow::on_puck1Button_clicked() {
+	shooting_at = PUCK1;
+	fire = true;
+}
+
+// Select puck 2 as target
+void MainWindow::on_puck2Button_clicked() {
+	shooting_at = PUCK2;
+	fire = true;
 }
 
 // Parse input data, and update current position
@@ -191,6 +252,17 @@ void MainWindow::onLineReceived(QString data)
 
 		robot.set_cur_pos(cur_lat_pos);
 		robot.set_cur_deg(cur_deg);
+
+		// We need to update the firing vector if we
+		// are in manual fire mode
+		if (shooting_at == MANUAL) {
+			if (cur_fv != 0) {
+				delete cur_fv;
+			}
+
+			cur_fv = new QLineF(QPointF(robot.get_cur_pos() + 5, FIELD_H - 10),
+								*cur_tar);
+		}
 	}
 	update_gui();
 }
@@ -215,7 +287,7 @@ void MainWindow::on_slider_valueChanged(int value) {
 	robot.set_tar_pos(value);
 	//robot.set_cur_pos(value); // remove this -montaguk
 	update_gui();
-	robot.move();
+	//robot.move();
 }
 
 // Handle signals emmitted by the dial
@@ -225,7 +297,52 @@ void MainWindow::on_tarDial_sliderMoved(int value) {
 	robot.set_tar_deg(value - 90);
 	//robot.set_cur_deg(value - 90); // remove this -montaguk
 	update_gui();
-	robot.move();
+	//robot.move();
+}
+
+// Handles clicks on the playing field
+// Shoots at the location clicked
+void MainWindow::scene_clicked(QEvent *ev){
+	QGraphicsSceneMouseEvent *e = static_cast<QGraphicsSceneMouseEvent*>(ev);
+	cur_tar = new QPoint(e->scenePos().x(), e->scenePos().y());
+
+	printf("Mouse click at (%d, %d)\n", cur_tar->x(), cur_tar->y());
+
+	// Set the target location for the robot
+	if (ui->lmove_cbox->isChecked()) {
+		robot.set_tar_pos(cur_tar->x());
+	}
+
+	cur_fv = new QLineF(QPointF(robot.get_cur_pos() + 5, FIELD_H - 10),
+						*cur_tar);
+
+	shooting_at = MANUAL;
+
+	fire = true;  // start shooting
+	//robot.move(); // start moving the robot
+}
+
+// Draws the lines for the current target, and
+// set the angle of the turret to point at the
+// target from the current location of the robot
+void MainWindow::update_cur_target() {
+	if (current_fv != 0) {
+		scene.removeItem(current_fv);
+		current_fv = 0;
+	}
+
+	if (current_tar != 0) {
+		scene.removeItem(current_tar);
+	}
+
+	if (cur_fv != 0) {
+		current_fv = scene.addLine(*cur_fv);
+		current_tar = scene.addEllipse(cur_tar->x() - 5, cur_tar->y() - 5, 10, 10);
+
+		int angle = 180 - cur_fv->angle();
+		robot.set_tar_deg(angle);
+		//robot.move();
+	}
 }
 
 void MainWindow::update_curPos_label() {
@@ -238,6 +355,12 @@ void MainWindow::update_tarPos_label() {
 	char buf[1024] = {0};
 	sprintf(buf, "Tar X: %03d, Deg: %03d", robot.get_tar_pos(), robot.get_tar_deg());
 	ui->tarPosLabel->setText(buf);
+}
+
+void MainWindow::update_shootingAt_label() {
+	char buf[1024] = {0};
+	sprintf(buf, "Shooting at: (%03d, %03d)", cur_tar->x(), cur_tar->y());
+	ui->shootingAtLabel->setText(buf);
 }
 
 void MainWindow::update_slider() {
@@ -300,7 +423,7 @@ void MainWindow::draw_pucks() {
 			puck_img[i] =
 					scene.addEllipse(pucks[i]->pos->x(),
 									 pucks[i]->pos->y(), 10, 10);
-			fv[i] = scene.addLine(*pucks[i]->firing_vector);
+			//fv[i] = scene.addLine(*pucks[i]->firing_vector);
 		}
 	}
 }
@@ -318,12 +441,15 @@ void MainWindow::update_field() {
 void MainWindow::update_gui() {
 	update_curPos_label();
 	update_tarPos_label();
+	update_shootingAt_label();
 	update_slider();
 	update_tarDial();
 	update_curDial();
 	update_field();
+	update_cur_target();
 }
 
 void MainWindow::refresh_field() {
+	robot.move();
 	update_gui();
 }

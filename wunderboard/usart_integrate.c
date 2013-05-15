@@ -7,6 +7,9 @@
 #define RIGHT 1;
 #define LEFT 0;
 
+#define RIGHT_TOLERANCE 15
+#define LEFT_TOLERANCE 15
+
 uint8_t enc1_state;
 uint8_t enc2_state;
 uint8_t prev_state1;
@@ -273,9 +276,13 @@ uint8_t main(void){
 	}			
 
 	if(old_tar_position != tar_position){//if the target position has changed
-		if(tar_position > position){//if the target position is to the right
+		if(tar_position > position + RIGHT_TOLERANCE){//if the target position is to the right
 			move_right();	    //move the slide right
-		}else{move_left();}	    //otherwise, move the slide to the left
+		}else if (tar_position < position - LEFT_TOLERANCE){
+			move_left(); 	    //otherwise, move the slide to the left
+		} else {
+			// Within tolerance, just sit
+		}
 		old_tar_position = tar_position;
 	}
 
@@ -292,13 +299,13 @@ uint8_t main(void){
 			stop_left();   //otherwise, stop it from moving left
 		}
 		pos_reached = 0;       //reset position reached variable
-		tar_position = position;//set target position to current position for overdamping
+		//tar_position = position;//set target position to current position for overdamping
 		old_tar_position = tar_position;//set old target equal to new target so next change can be seen
 	}
 
 	char buf[10] = {0};
 	
-	sendStringUART(itoa((int8_t)position, buf, 10)); //send current position to GUI
+	sendStringUART(itoa(position, buf, 10)); //send current position to GUI
 	sendByteUART(',');
 	sendStringUART(itoa(angle, buf, 10));    //send current angle to GUI
 	sendByteUART(',');
