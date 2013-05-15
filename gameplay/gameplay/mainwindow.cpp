@@ -182,7 +182,7 @@ void MainWindow::update_pucks() {
 
 				// Find firing vector for this puck
 				pucks[puck_num]->firing_vector =
-						new QLineF(QPoint(robot.get_cur_pos() + 5, FIELD_H - 10),
+						new QLineF(QPoint(robot.get_cur_pos(), FIELD_H - 10),
 								  pucks[puck_num]->center());
 
 				// If we are shooting at this puck, also
@@ -191,7 +191,7 @@ void MainWindow::update_pucks() {
 					cur_tar = pucks[puck_num]->pos;
 
 					if (ui->lmove_cbox->isChecked()) {
-						robot.set_tar_pos(pucks[puck_num]->pos->x());
+						robot.set_tar_pos(pucks[puck_num]->center().x());
 					}
 
 					cur_fv = pucks[puck_num]->firing_vector;
@@ -260,7 +260,7 @@ void MainWindow::onLineReceived(QString data)
 				delete cur_fv;
 			}
 
-			cur_fv = new QLineF(QPointF(robot.get_cur_pos() + 5, FIELD_H - 10),
+			cur_fv = new QLineF(QPointF(robot.get_cur_pos(), FIELD_H - 10),
 								*cur_tar);
 		}
 	}
@@ -313,7 +313,7 @@ void MainWindow::scene_clicked(QEvent *ev){
 		robot.set_tar_pos(cur_tar->x());
 	}
 
-	cur_fv = new QLineF(QPointF(robot.get_cur_pos() + 5, FIELD_H - 10),
+	cur_fv = new QLineF(QPointF(robot.get_cur_pos(), FIELD_H - 10),
 						*cur_tar);
 
 	shooting_at = MANUAL;
@@ -381,14 +381,14 @@ void MainWindow::update_curDial() {
 
 void MainWindow::update_rect() {
 	// Update robot
-	rect->setX(robot.get_cur_pos());
+	rect->setX(robot.get_cur_pos() - 5);
 }
 
 void MainWindow::update_line() {
 	QLineF l = line->line();
 
 	// Update line of fire
-	l.setP1(QPointF(robot.get_cur_pos() + 5, FIELD_H - 10));
+	l.setP1(QPointF(robot.get_cur_pos(), FIELD_H - 10));
 	l.setAngle(MAX_DEG - robot.get_cur_deg());
 	l.setLength(10);
 

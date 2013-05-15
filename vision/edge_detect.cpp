@@ -15,8 +15,8 @@
 
 //#define FIELD_W 720
 //#define FIELD_H 480
-#define FIELD_W 230
-#define FIELD_H 420
+#define FIELD_W 220
+#define FIELD_H 410
 
 #define FIFO_PATH "../gameplay/gameplay/fifo"
 

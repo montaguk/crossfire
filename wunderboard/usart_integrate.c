@@ -161,9 +161,9 @@ ISR(TIMER0_COMPA_vect){
 
 void tcnt1_init(void){
 	TCCR1A |= (1<<WGM11) | (1<<COM1A1);//phase correct PWM with ICR3A, set on down count, clear on up count
-	TCCR1B |= (1<<WGM13) | (1<<CS11);//prescale clock by 8
+	TCCR1B |= (1<<WGM13) | (1<<CS10);//no prescale
 	ICR1 = 10000;	//8MHZ/(2*8*10000) = 50Hz to get a 20ms period
-	OCR1A = angle;	//90 degree state, 1500us pulse width
+	OCR1A = (angle*5 + 300);	//90 degree state, 1500us pulse width
 }//tcnt1_init
 
 //#if DEBUG == 1
@@ -286,10 +286,11 @@ uint8_t main(void){
 		old_tar_position = tar_position;
 	}
 
-	if(old_angle != angle){//if the angle has changed
+	if(tar_angle != angle){//if the angle has changed
 		//map angle to PWM value: 0 = 300, 180 = 1200: OCR1A value = (angle*5)+300
-		OCR1A = (angle*5) + 300; 
 		old_angle = angle;//set old_angle to current for comparison
+		angle = tar_angle;
+		OCR1A = (angle*5) + 300;
 	}
 
 	if((pos_reached == 1) && (moving == 1)){//if the position has been reached and the slide is moving

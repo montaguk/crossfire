@@ -9,8 +9,8 @@
 #include "robot.h"
 #include "puck.h"
 
-#define FIELD_H 430
-#define FIELD_W 240
+#define FIELD_H 410
+#define FIELD_W 220
 
 #define NUM_PUCKS 2
 
