@@ -146,7 +146,7 @@ void MainWindow::update_pucks() {
 				// Find firing vector for this puck
 				pucks[puck_num]->firing_vector =
 						new QLine(QPoint(robot.get_cur_pos() + 5, FIELD_H - 10),
-								  *pucks[puck_num]->pos);
+								  pucks[puck_num]->center());
 
 			}
 
@@ -176,11 +176,18 @@ void MainWindow::onLineReceived(QString data)
 	// TODO: Parse this data from serial packet -montaguk
 	//int cur_lat_pos = 10;//robot.get_cur_pos();
 	//int cur_deg = 90;//robot.get_cur_deg();
-	if (data.length() >= 2) {
-		int cur_lat_pos = (int)data[0].digitValue();
-		int cur_deg = (int)data[1].digitValue();
 
-		printf("Robot pos is %d at %d degrees\n", cur_lat_pos, cur_deg);
+	//quint8 cur_lat_pos = (quint8)data[0].digitValue();
+	//quint8 cur_deg = (quint8)data[1].digitValue();
+	QStringList l = data.split(",");
+
+	if (l.length() >= 3) {
+		quint8 cur_lat_pos = l.at(0).toInt();
+		quint8 cur_deg = l.at(1).toInt();
+		quint8 tar_pos = l.at(2).toInt();
+
+
+		printf("X: %d at %d deg, Tar: %d\n", cur_lat_pos, cur_deg, tar_pos);
 
 		robot.set_cur_pos(cur_lat_pos);
 		robot.set_cur_deg(cur_deg);
@@ -196,7 +203,7 @@ void MainWindow::on_openCloseButton_clicked()
 		robot.close();
 		ui->openCloseButton->setText("Open");
 	} else {
-		robot.open(ui->portName->currentText(),115200);
+		robot.open(ui->portName->currentText(),9600);
 		if(!robot.isOpen() || robot.errorStatus()) return;
 		ui->openCloseButton->setText("Close");
 	}
@@ -204,7 +211,7 @@ void MainWindow::on_openCloseButton_clicked()
 
 // Handle signals emmitted by the slider moving
 // Value is the new value of the slider
-void MainWindow::on_slider_sliderMoved(int value) {
+void MainWindow::on_slider_valueChanged(int value) {
 	robot.set_tar_pos(value);
 	//robot.set_cur_pos(value); // remove this -montaguk
 	update_gui();

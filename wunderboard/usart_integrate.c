@@ -10,7 +10,7 @@
 uint8_t enc1_state;
 uint8_t enc2_state;
 uint8_t prev_state1;
-volatile uint8_t position = 0; //halfway point of position 
+volatile int16_t position = 0; //halfway point of position 
 uint8_t enc_freq = 1; //determines how often the encoders are checked by tcnt0
 uint8_t buttons = 0;
 
@@ -24,7 +24,7 @@ uint8_t direction = 0;
 uint8_t moving = 0;
 uint8_t pulse_move_right = 0;
 uint8_t pulse_stop_right = 0;
-volatile uint8_t tar_position = 64;
+volatile uint8_t tar_position = 0;
 volatile uint8_t old_tar_position = 0;
 volatile uint8_t pos_reached = 0;
 uint8_t angle = 90;
@@ -256,10 +256,10 @@ uint8_t main(void){
 
   while(1){
  	if(getByteUART() == rec_sig){//if new data has been sent from the computer
-		temp_position = getByteUART();	//get the new target position
-		PORTC = temp_position;
-		tar_angle = getByteUART();	//get the new target angle
+		while(!(temp_position = getByteUART())); //get the new target position
+		while(!(tar_angle = getByteUART()));	 //get the new target angle
 		if(moving == 0){tar_position = temp_position;}//if the slide is not moving, update the new target position
+		PORTC = tar_position;
 	}
 	if(pulse_move_right == 1){	//if the move right pressure valve has been turned on
 		_delay_ms(1);
@@ -276,6 +276,7 @@ uint8_t main(void){
 		if(tar_position > position){//if the target position is to the right
 			move_right();	    //move the slide right
 		}else{move_left();}	    //otherwise, move the slide to the left
+		old_tar_position = tar_position;
 	}
 
 	if(old_angle != angle){//if the angle has changed
@@ -295,8 +296,13 @@ uint8_t main(void){
 		old_tar_position = tar_position;//set old target equal to new target so next change can be seen
 	}
 
-	sendByteUART(position); //send current position to GUI
-	sendByteUART(angle);    //send current angle to GUI
+	char buf[10] = {0};
+	
+	sendStringUART(itoa((int8_t)position, buf, 10)); //send current position to GUI
+	sendByteUART(',');
+	sendStringUART(itoa(angle, buf, 10));    //send current angle to GUI
+	sendByteUART(',');
+	sendStringUART(itoa(tar_position, buf, 10));
 	sendStringUART("\r\n");	//send newline char to protect from data mixup
   }
 }

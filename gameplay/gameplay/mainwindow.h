@@ -65,7 +65,7 @@ private slots:
 	void on_refreshButton_clicked();
 	void on_openCloseButton_clicked();
 	void onLineReceived(QString data);
-	void on_slider_sliderMoved(int value);
+	void on_slider_valueChanged(int value);
 	void on_tarDial_sliderMoved(int value);
 	void refresh_field();
 };

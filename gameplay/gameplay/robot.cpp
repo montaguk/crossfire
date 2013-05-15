@@ -6,11 +6,11 @@
 
 Robot::Robot() : QAsyncSerial()
 {
-	cur_lat_pos = 0;
-	cur_deg = 0;
+	cur_lat_pos = 1;
+	cur_deg = 1;
 
-	tar_lat_pos = 0;
-	tar_deg = 0;
+	tar_lat_pos = 1;
+	tar_deg = 1;
 }
 
 
