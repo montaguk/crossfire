@@ -45,6 +45,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	current_fv = 0;
 	//cur_tar = 0;
 	shooting_at = NONE;
+	targeting_mode = MAN;
 
 	// Keep track of the pucks
 	printf("Launching puck update thread...");
@@ -208,6 +209,60 @@ void MainWindow::update_pucks() {
 	fifo.close();
 }
 
+// Works with no more than 2 pucks
+int MainWindow::find_best_target() {
+	// If there are no pucks, return error
+	if (!pucks[0] && !pucks[1]) {
+		return -1;
+	}
+
+	// If there is only one puck, shoot at that one
+	if (pucks[0] && !pucks[1]) {
+		return 0;
+	} else if (pucks[1] && !pucks[0]) {
+		return 1;
+	}
+
+	// If there is a puck that is too close, always chose that
+	// one.  If they are both too close, shoot the closest one
+	int y0 = pucks[0]->center().y();
+	int y1 = pucks[1]->center().y();
+
+	if (y0 > DANGER_THRESH || y1 > DANGER_THRESH) {
+		if (y0 > y1 ) {
+			return 0;
+		} else {
+			return 1;
+		}
+	}
+
+	// If there are no pucks in the danger zone, select
+	// the puck that is closest to the opponents goal
+	if (y0 > y1) {
+		return 1;
+	} else {
+		return 0;
+	}
+
+	return 0;
+}
+
+// Tries to select the optimal puck to shoot at.
+// Only works with a max of 2 pucks
+void MainWindow::select_target() {
+	int best_tar = find_best_target();
+
+	// Set the target to the best one
+	if (best_tar == 0) {
+		shooting_at = PUCK1;
+	} else if (best_tar == 1){
+		shooting_at = PUCK2;
+	} else {
+		shooting_at = NONE;
+	}
+
+}
+
 // Send string on serial line to robot
 void MainWindow::on_fireButton_clicked() {
 	printf("FIRE! X: %d, Deg: %d)\n", robot.get_cur_pos(), robot.get_cur_deg());
@@ -221,12 +276,14 @@ void MainWindow::on_refreshButton_clicked() {
 // Select puck 1 as target
 void MainWindow::on_puck1Button_clicked() {
 	shooting_at = PUCK1;
+	targeting_mode = MAN;
 	fire = true;
 }
 
 // Select puck 2 as target
 void MainWindow::on_puck2Button_clicked() {
 	shooting_at = PUCK2;
+	targeting_mode = MAN;
 	fire = true;
 }
 
@@ -281,6 +338,10 @@ void MainWindow::on_openCloseButton_clicked()
 	}
 }
 
+void MainWindow::on_autoSelectButton_clicked() {
+	targeting_mode = AUTO;
+}
+
 // Handle signals emmitted by the slider moving
 // Value is the new value of the slider
 void MainWindow::on_slider_valueChanged(int value) {
@@ -317,6 +378,7 @@ void MainWindow::scene_clicked(QEvent *ev){
 						*cur_tar);
 
 	shooting_at = MANUAL;
+	targeting_mode = MAN;
 
 	fire = true;  // start shooting
 	//robot.move(); // start moving the robot
@@ -361,6 +423,27 @@ void MainWindow::update_shootingAt_label() {
 	char buf[1024] = {0};
 	sprintf(buf, "Shooting at: (%03d, %03d)", cur_tar->x(), cur_tar->y());
 	ui->shootingAtLabel->setText(buf);
+}
+
+void MainWindow::update_currentTarget_label() {
+	char buf[1024] = {0};
+	const char *tar_str;
+
+	if (shooting_at == PUCK1) {
+		tar_str = "Puck 1";
+	} else if (shooting_at == PUCK2) {
+		tar_str = "Puck 2";
+	} else if (shooting_at == MANUAL) {
+		tar_str = "Manual";
+	} else if (shooting_at == NONE) {
+		tar_str = "None";
+	} else {
+		tar_str = "Unknown";
+	}
+
+	sprintf(buf, "Current Target: %s", tar_str);
+	ui->targetLabel->setText(buf);
+
 }
 
 void MainWindow::update_slider() {
@@ -442,6 +525,7 @@ void MainWindow::update_gui() {
 	update_curPos_label();
 	update_tarPos_label();
 	update_shootingAt_label();
+	update_currentTarget_label();
 	update_slider();
 	update_tarDial();
 	update_curDial();
@@ -451,5 +535,11 @@ void MainWindow::update_gui() {
 
 void MainWindow::refresh_field() {
 	robot.move();
+	if (targeting_mode == AUTO) {
+		select_target();
+	} else {
+		// Probably shouldn't go here, but works -montaguk
+		ui->autoSelectButton->setChecked(false);
+	}
 	update_gui();
 }

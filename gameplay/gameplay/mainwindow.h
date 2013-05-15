@@ -16,6 +16,8 @@
 
 #define REFRESH_RATE 30  // in ms
 
+#define DANGER_THRESH 330
+
 namespace Ui {
 class MainWindow;
 }
@@ -34,6 +36,7 @@ public:
 private:
 	void update_curPos_label();
 	void update_tarPos_label();
+	void update_currentTarget_label();
 	void update_slider();
 	void update_curDial();
 	void update_tarDial();
@@ -45,6 +48,8 @@ private:
 	void update_cur_target();
 	void scene_clicked(QEvent *ev);
 	void update_shootingAt_label();
+	void select_target();
+	int find_best_target();
 
 	Ui::MainWindow *ui;
 	QGraphicsScene scene;
@@ -70,6 +75,7 @@ private:
 	QTimer *screen_refresh_timer;
 
 	enum _targets{PUCK1, PUCK2, MANUAL, NONE} shooting_at;
+	enum _modes{MAN, AUTO} targeting_mode;
 
 private slots:
 	void on_fireButton_clicked();
@@ -80,6 +86,7 @@ private slots:
 	void on_tarDial_sliderMoved(int value);
 	void on_puck1Button_clicked();
 	void on_puck2Button_clicked();
+	void on_autoSelectButton_clicked();
 	void refresh_field();
 
 protected:

@@ -57,7 +57,7 @@
           <enum>QLayout::SetDefaultConstraint</enum>
          </property>
          <item alignment="Qt::AlignHCenter|Qt::AlignTop">
-          <widget class="QLabel" name="label">
+          <widget class="QLabel" name="targetLabel">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
              <horstretch>0</horstretch>
@@ -65,10 +65,24 @@
             </sizepolicy>
            </property>
            <property name="text">
-            <string>Select Puck:</string>
+            <string>Current Target:</string>
            </property>
            <property name="alignment">
             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="Line" name="line_3">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item alignment="Qt::AlignHCenter">
+          <widget class="QLabel" name="label">
+           <property name="text">
+            <string>Select Target:</string>
            </property>
           </widget>
          </item>
@@ -98,6 +112,16 @@
            </property>
            <property name="text">
             <string>Puck 2</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="autoSelectButton">
+           <property name="text">
+            <string>Auto Select</string>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
            </property>
           </widget>
          </item>
