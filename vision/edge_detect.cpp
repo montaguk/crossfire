@@ -15,8 +15,8 @@
 
 //#define FIELD_W 720
 //#define FIELD_H 480
-#define FIELD_W 220
-#define FIELD_H 410
+#define FIELD_W 265 // In encoder ticks
+#define FIELD_H 484 // In encoder ticks
 
 #define FIFO_PATH "../gameplay/gameplay/fifo"
 
@@ -243,31 +243,23 @@ void find_puck (Mat &src, Mat &dst, vector<Point2f> &pl) {
 // located in the current directory
 void write_fifo(std::vector<Point2f> pl) {
 	int i;
+	char buf[25] = {0};
+	char str[50] = {0};
 	
-	// No pucks
-	if (pl.size() == 0) {
-		fifo.put((int8_t) -1);
-		fifo.put('\n');
-		fifo.flush();
-		return;
-	}
-	
-	for (i = 0; i < pl.size(); i++) {
-		uint8_t x1 = (((uint16_t)pl[i].x) & 0xFF00) >> 8;
-		uint8_t x0 = ((uint8_t)pl[i].x) & 0x00FF;
-		uint8_t y1 = (((uint16_t)pl[i].y) & 0xFF00) >> 8;
-		uint8_t y0 = ((uint8_t)pl[i].y) & 0x00FF;
+	for (i = 0; i < pl.size(); i++) {		
+		sprintf(buf, "%d,%d", (int)pl[i].x, (int)pl[i].y);
+		strcat(str, buf);
 
-		printf("Sending: 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", i, x1, x0, y1, y0);
-		
-		fifo.put(i);
-		fifo.put(x1);
-		fifo.put(x0);
-		fifo.put(y1);
-		fifo.put(y0);
-		fifo.put('\n');
-		fifo.flush();			// Write everything
+		// If this is not the last element, insert a semi-colon
+		if (i != pl.size() - 1) {
+			strcat(str, ";");
+		}
 	}
+
+	strcat(str, "\n");
+
+	fifo << str;
+	fifo.flush();			// Write everything
 }
 
 /** @function main */

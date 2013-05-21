@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>459</width>
-    <height>767</height>
+    <width>568</width>
+    <height>711</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,34 +19,15 @@
      <rect>
       <x>9</x>
       <y>-1</y>
-      <width>445</width>
-      <height>703</height>
+      <width>551</width>
+      <height>641</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout">
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout_3">
        <item>
-        <widget class="QGraphicsView" name="field">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>250</width>
-           <height>500</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>250</width>
-           <height>500</height>
-          </size>
-         </property>
-        </widget>
+        <widget class="QGraphicsView" name="field"/>
        </item>
        <item>
         <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -56,7 +37,7 @@
          <property name="sizeConstraint">
           <enum>QLayout::SetDefaultConstraint</enum>
          </property>
-         <item alignment="Qt::AlignHCenter|Qt::AlignTop">
+         <item alignment="Qt::AlignRight|Qt::AlignTop">
           <widget class="QLabel" name="targetLabel">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -79,14 +60,14 @@
            </property>
           </widget>
          </item>
-         <item alignment="Qt::AlignHCenter">
+         <item alignment="Qt::AlignRight">
           <widget class="QLabel" name="label">
            <property name="text">
             <string>Select Target:</string>
            </property>
           </widget>
          </item>
-         <item alignment="Qt::AlignTop">
+         <item alignment="Qt::AlignRight|Qt::AlignTop">
           <widget class="QPushButton" name="puck1Button">
            <property name="text">
             <string>Puck 1</string>
@@ -99,7 +80,7 @@
            </property>
           </widget>
          </item>
-         <item alignment="Qt::AlignTop">
+         <item alignment="Qt::AlignRight|Qt::AlignTop">
           <widget class="QPushButton" name="puck2Button">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -115,7 +96,7 @@
            </property>
           </widget>
          </item>
-         <item>
+         <item alignment="Qt::AlignRight">
           <widget class="QPushButton" name="autoSelectButton">
            <property name="text">
             <string>Auto Select</string>
@@ -125,7 +106,7 @@
            </property>
           </widget>
          </item>
-         <item>
+         <item alignment="Qt::AlignRight">
           <widget class="QLabel" name="shootingAtLabel">
            <property name="text">
             <string>Shooting At:</string>
@@ -139,7 +120,7 @@
            </property>
           </widget>
          </item>
-         <item>
+         <item alignment="Qt::AlignLeft">
           <widget class="QCheckBox" name="lmove_cbox">
            <property name="layoutDirection">
             <enum>Qt::RightToLeft</enum>
@@ -155,7 +136,7 @@
            </property>
           </widget>
          </item>
-         <item>
+         <item alignment="Qt::AlignLeft">
           <widget class="QCheckBox" name="amove_cbox">
            <property name="layoutDirection">
             <enum>Qt::RightToLeft</enum>
@@ -175,10 +156,10 @@
            </property>
           </widget>
          </item>
-         <item>
+         <item alignment="Qt::AlignRight">
           <widget class="QComboBox" name="portName"/>
          </item>
-         <item>
+         <item alignment="Qt::AlignRight">
           <widget class="QPushButton" name="openCloseButton">
            <property name="text">
             <string>Open</string>
@@ -313,7 +294,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>459</width>
+     <width>568</width>
      <height>24</height>
     </rect>
    </property>

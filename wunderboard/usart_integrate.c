@@ -13,7 +13,7 @@
 uint8_t enc1_state;
 uint8_t enc2_state;
 uint8_t prev_state1;
-volatile int16_t position = 0; //halfway point of position 
+volatile int16_t position = 7; //halfway point of position 
 uint8_t enc_freq = 1; //determines how often the encoders are checked by tcnt0
 uint8_t buttons = 0;
 
@@ -27,13 +27,13 @@ uint8_t direction = 0;
 uint8_t moving = 0;
 uint8_t pulse_move_right = 0;
 uint8_t pulse_stop_right = 0;
-volatile uint8_t tar_position = 0;
-volatile uint8_t old_tar_position = 0;
+volatile uint8_t tar_position = 7;
+volatile uint8_t old_tar_position = 7;
 volatile uint8_t pos_reached = 0;
 uint8_t angle = 90;
 uint8_t tar_angle = 90;
 uint8_t old_angle = 90;
-uint8_t temp_position = 0;
+uint8_t temp_position = 7;
 uint8_t rec_sig = '@';
 
 /***********************************************************************/

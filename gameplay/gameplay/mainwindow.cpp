@@ -21,13 +21,10 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->portName->addItem("COM3", 0);
 	ui->portName->addItem("COM4", 0);
 
-	// Configure the default state of the gui indicators
-	ui->slider->setMinimum(robot.get_lat_min());
-	ui->slider->setMaximum(robot.get_lat_max());
-
 	// Add the robot views to the field
-	scene.setSceneRect(0, 0, FIELD_W, FIELD_H);
-	rect = scene.addRect(0,FIELD_H - 10,10,10);
+	scene.setSceneRect(0, 0, FIELD_W, FIELD_H + DEADZONE_H);
+	scene.addRect(0, 0, FIELD_W, FIELD_H);
+	rect = scene.addRect(2,FIELD_H + DEADZONE_H - 10,10,10);
 
 	// Add the line of fire to the scene
 	line = scene.addLine(0,0,10,10);
@@ -55,6 +52,9 @@ MainWindow::MainWindow(QWidget *parent) :
 	printf("Done\n");
 
 	// Set initial states for all gui components
+	// Configure the default state of the gui indicators
+	ui->slider->setMinimum(robot.get_lat_min());
+	ui->slider->setMaximum(robot.get_lat_max());
 	update_gui();
 
 	// Make the timer
@@ -100,12 +100,12 @@ MainWindow::~MainWindow()
 		}
 	}
 
-	if (current_tar != 0) {
-		delete current_tar;
-	}
-
 	if (cur_fv != 0) {
 		delete cur_fv;
+	}
+
+	if (current_tar != 0) {
+		delete current_tar;
 	}
 
 	if (current_fv != 0) {
@@ -136,13 +136,13 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *ev) {
 // the local directory called fifo.  This should be
 // created before starting the program.
 void MainWindow::update_pucks() {
-	int i;
-	static int num_pucks = 0;
+	int i, puck_num;
+	int num_pucks = 0;
 
 	// Open the fifo
 	printf("Opening Fifo...");
 	QFile fifo("./fifo");
-	char buf[10] = {0};
+	char buf[20] = {0};
 
 	if(!fifo.open(QIODevice::ReadOnly)) {
 		printf("Could not open fifo.\n");
@@ -153,49 +153,59 @@ void MainWindow::update_pucks() {
 	fflush(stdout);
 
 	// Start reading from the fifo
-	// first byte on a line is puck number
-	// next two bytes are x coord, followed by two bytes of y coord
-	// [puck num, x1, x0, y1, y0, \n]
-	while (continue_update) {		
-		if (fifo.readLine(buf, 10) > 0) {
-			qint8 puck_num = buf[0];
+	// screen updates are delimmited by newlines
+	// pucks are delimited by semi-colons
+	// pucks come as comma seperated x and y coord
+	// [x, y; x, y \n]
+	while (continue_update) {
+		if (fifo.readLine(buf, sizeof(buf)) > 0) {
+			printf("Got string %s\n", buf);
+			QString s(buf);
+			s.replace("\n", "");
+			QStringList plist = s.split(";");
+			//qint8 puck_num = buf[0];
 
-			if (puck_num == -1) {
-				printf("No pucks found\n");
-				continue;
+			// Delete all existing pucks
+			for (i = 0; i < NUM_PUCKS; i++) {
+				if (pucks[i] != 0) {
+					delete pucks[i];
+					pucks[i] = 0;
+				}
 			}
 
-			printf("0x%02x 0x%02x 0x%02x 0x%02x\n", buf[1], buf[2], buf[3], buf[4]);
+			for (puck_num = 0; puck_num < plist.size(); puck_num++) {
+				if (puck_num < NUM_PUCKS) {
+					QStringList ploc = plist.at(puck_num).split(",");
 
-			quint16 x = ((buf[1] & 0x00FF) << 8) | ((buf[2]) & 0x00FF);
-			quint16 y = ((buf[3] & 0x00FF) << 8) | ((buf[4]) & 0x00FF);
+					// Make sure we have x and y coords
+					if (ploc.size() == 2) {
 
-			printf("updating puck %d at position (%d, %d)\n", puck_num, x, y);
+						// Update the current puck
+						quint16 x = ploc.at(0).toInt();
+						quint16 y = ploc.at(1).toInt();
 
-			if (puck_num < NUM_PUCKS) {
-				if (pucks[puck_num] == 0) {
-					pucks[puck_num] = new Puck(x, y);
-					num_pucks++;
-				} else {
-					pucks[puck_num]->pos->setX(x);
-					pucks[puck_num]->pos->setY(y);
-				}
+						printf("updating puck %d at position (%d, %d)\n", puck_num, x, y);
 
-				// Find firing vector for this puck
-				pucks[puck_num]->firing_vector =
-						new QLineF(QPoint(robot.get_cur_pos(), FIELD_H - 10),
-								  pucks[puck_num]->center());
+						pucks[puck_num] = new Puck(x, y);
+						num_pucks++;
 
-				// If we are shooting at this puck, also
-				// update the current target info
-				if (shooting_at == puck_num) {
-					cur_tar = pucks[puck_num]->pos;
+						// Find firing vector for this puck
+						pucks[puck_num]->firing_vector =
+								new QLineF(QPoint(robot.get_cur_pos(), FIELD_H + DEADZONE_H - 10),
+										   pucks[puck_num]->center());
 
-					if (ui->lmove_cbox->isChecked()) {
-						robot.set_tar_pos(pucks[puck_num]->center().x());
+						// If we are shooting at this puck, also
+						// update the current target info
+						if (shooting_at == puck_num) {
+							cur_tar = pucks[puck_num]->pos;
+
+							if (ui->lmove_cbox->isChecked()) {
+								robot.set_tar_pos(pucks[puck_num]->center().x());
+							}
+
+							cur_fv = pucks[puck_num]->firing_vector;
+						}
 					}
-
-					cur_fv = pucks[puck_num]->firing_vector;
 				}
 
 			}
@@ -300,12 +310,12 @@ void MainWindow::onLineReceived(QString data)
 	QStringList l = data.split(",");
 
 	if (l.length() >= 3) {
-		quint8 cur_lat_pos = l.at(0).toInt();
-		quint8 cur_deg = l.at(1).toInt();
-		quint8 tar_pos = l.at(2).toInt();
+		qint16 cur_lat_pos = l.at(0).toInt();
+		qint16 cur_deg = l.at(1).toInt();
+		qint16 tar_pos = l.at(2).toInt();
 
 
-		printf("X: %d at %d deg, Tar: %d\n", cur_lat_pos, cur_deg, tar_pos);
+		//printf("X: %d at %d deg, Tar: %d\n", cur_lat_pos, cur_deg, tar_pos);
 
 		robot.set_cur_pos(cur_lat_pos);
 		robot.set_cur_deg(cur_deg);
@@ -317,7 +327,7 @@ void MainWindow::onLineReceived(QString data)
 				delete cur_fv;
 			}
 
-			cur_fv = new QLineF(QPointF(robot.get_cur_pos(), FIELD_H - 10),
+			cur_fv = new QLineF(QPointF(robot.get_cur_pos(), FIELD_H + DEADZONE_H - 10),
 								*cur_tar);
 		}
 	}
@@ -374,7 +384,7 @@ void MainWindow::scene_clicked(QEvent *ev){
 		robot.set_tar_pos(cur_tar->x());
 	}
 
-	cur_fv = new QLineF(QPointF(robot.get_cur_pos(), FIELD_H - 10),
+	cur_fv = new QLineF(QPointF(robot.get_cur_pos(), FIELD_H + DEADZONE_H - 10),
 						*cur_tar);
 
 	shooting_at = MANUAL;
@@ -464,14 +474,16 @@ void MainWindow::update_curDial() {
 
 void MainWindow::update_rect() {
 	// Update robot
-	rect->setX(robot.get_cur_pos() - 5);
+	if (rect) {
+		rect->setX(robot.get_cur_pos() - 5);
+	}
 }
 
 void MainWindow::update_line() {
 	QLineF l = line->line();
 
 	// Update line of fire
-	l.setP1(QPointF(robot.get_cur_pos(), FIELD_H - 10));
+	l.setP1(QPointF(robot.get_cur_pos(), FIELD_H + DEADZONE_H - 10));
 	l.setAngle(MAX_DEG - robot.get_cur_deg());
 	l.setLength(10);
 
@@ -503,9 +515,11 @@ void MainWindow::draw_pucks() {
 	// Draw newly found pucks
 	for (i = 0; i < NUM_PUCKS; i++) {
 		if (pucks[i] != 0) {
-			puck_img[i] =
-					scene.addEllipse(pucks[i]->pos->x(),
-									 pucks[i]->pos->y(), 10, 10);
+			QPoint p = *pucks[i]->pos;
+			int x = p.x();
+			int y = p.y();
+
+			puck_img[i] = scene.addEllipse(x - 5, y - 5, 10, 10);
 			//fv[i] = scene.addLine(*pucks[i]->firing_vector);
 		}
 	}
