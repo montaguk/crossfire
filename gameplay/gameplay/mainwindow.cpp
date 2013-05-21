@@ -8,6 +8,7 @@
 #include <QFile>
 #include <QtCore>
 #include <QGraphicsSceneMouseEvent>
+#include <QPolygonF>
 
 MainWindow::MainWindow(QWidget *parent) :
 	QMainWindow(parent),
@@ -178,15 +179,16 @@ void MainWindow::update_pucks() {
 					QStringList ploc = plist.at(puck_num).split(",");
 
 					// Make sure we have x and y coords
-					if (ploc.size() == 2) {
+					if (ploc.size() == 3) {
 
 						// Update the current puck
-						quint16 x = ploc.at(0).toInt();
-						quint16 y = ploc.at(1).toInt();
+						QString type = ploc.at(0);
+						quint16 x = ploc.at(1).toInt();
+						quint16 y = ploc.at(2).toInt();
 
-						printf("updating puck %d at position (%d, %d)\n", puck_num, x, y);
+						printf("updating %s puck %d at position (%d, %d)\n", ploc.at(0).toStdString().c_str() , puck_num, x, y);
 
-						pucks[puck_num] = new Puck(x, y);
+						pucks[puck_num] = new Puck(x, y, type);
 						num_pucks++;
 
 						// Find firing vector for this puck
@@ -519,7 +521,11 @@ void MainWindow::draw_pucks() {
 			int x = p.x();
 			int y = p.y();
 
-			puck_img[i] = scene.addEllipse(x - 5, y - 5, 10, 10);
+			if (pucks[i]->type == "S") {
+				puck_img[i] = scene.addEllipse(x - 5, y - 5, 10, 10);
+			} else {
+				puck_img[i] = scene.addRect(x - 5, y - 5, 10, 10);
+			}
 			//fv[i] = scene.addLine(*pucks[i]->firing_vector);
 		}
 	}

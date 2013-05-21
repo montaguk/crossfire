@@ -61,7 +61,7 @@ private:
 	Robot robot;
 
 	Puck *pucks[NUM_PUCKS];
-	QGraphicsEllipseItem *puck_img[NUM_PUCKS];
+	QGraphicsItem *puck_img[NUM_PUCKS];
 	QGraphicsLineItem *fv[NUM_PUCKS];
 	QPoint *cur_tar;
 	QLineF *cur_fv;

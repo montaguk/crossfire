@@ -30,6 +30,8 @@ using namespace cv;
 struct puck_list_element {
 	Moments moments;
 	vector<Point> *contour;
+	const char *type;
+	Point2f center;
 };
 	
 
@@ -169,7 +171,7 @@ void draw_cal_lines()
     cv::line(src, cal_points[2], cal_points[0], Scalar(255,255,255));  // left bar
 }
 
-void find_puck (Mat &src, Mat &dst, vector<Point2f> &pl) {
+void find_puck (Mat &src, Mat &dst, vector<struct puck_list_element> &pl) {
 	//printf("Building binary image...");
 	Mat gray;
 	vector<vector<Point> > contours;
@@ -225,21 +227,32 @@ void find_puck (Mat &src, Mat &dst, vector<Point2f> &pl) {
 	printf("]");
 #endif
 	
-	// Find the mass centers for all moments
-	vector<Point2f> mc(contours.size());
-	for (i = 0; (i < mc.size()) && (i < NUM_PUCKS); i++) {
-		mc[i] = Point2f(mu[i].moments.m10/mu[i].moments.m00, mu[i].moments.m01/mu[i].moments.m00);
+	// Find the mass centers for all moments, and detect the shape
+	// of the contour
+	vector<Point> vertecies;	// Holds vertecies of contour
+
+	//vector<Point2f> mc(contours.size());
+	for (i = 0; (i < mu.size()) && (i < NUM_PUCKS); i++) {
+		mu[i].center = Point2f(mu[i].moments.m10/mu[i].moments.m00, mu[i].moments.m01/mu[i].moments.m00);
+		approxPolyDP(*mu[i].contour, vertecies, arcLength(Mat(*mu[i].contour), true)*0.05, true);
+
+		// Set puck type
+		if (vertecies.size() == 3) {
+			mu[i].type = "T";
+		} else {
+			mu[i].type = "S";
+		}
 		
 		// Draw circles around the centers
-		cv::circle(src, mc[i], 4, Scalar(255, 0, 0), -1, 8, 0);
+		cv::circle(src, mu[i].center, 4, Scalar(255, 0, 0), -1, 8, 0);
 	}
 
 	for (i = 0; (i < mu.size()) && (i < NUM_PUCKS); i++) {
 		if (mu[i].moments.m00 > MIN_PUCK_AREA) {
-			pl.push_back(mc[i]);
+			pl.push_back(mu[i]);
 			
 #ifdef DEBUG
-			printf(" (%.2f, %.2f)", mc[i].x, mc[i].y);
+			printf(" %s at (%.2f, %.2f)", mu[i].type, mu[i].center.x, mu[i].center.y);
 #endif
 			
 		}
@@ -248,13 +261,13 @@ void find_puck (Mat &src, Mat &dst, vector<Point2f> &pl) {
 
 // Write puck locations in pl to the file named fifo
 // located in the current directory
-void write_fifo(std::vector<Point2f> pl) {
+void write_fifo(std::vector<struct puck_list_element> pl) {
 	int i;
 	char buf[25] = {0};
 	char str[50] = {0};
 	
-	for (i = 0; i < pl.size(); i++) {		
-		sprintf(buf, "%d,%d", (int)pl[i].x, (int)pl[i].y);
+	for (i = 0; i < pl.size(); i++) {
+		sprintf(buf, "%s,%d,%d", pl[i].type, (int)pl[i].center.x, (int)pl[i].center.y);
 		strcat(str, buf);
 
 		// If this is not the last element, insert a semi-colon
@@ -351,7 +364,7 @@ int main( int argc, char** argv )
     if (mode == live_capture) {
 	    
 	    while (1) {
-		    vector<Point2f> pl;	// Where are the pucks?
+		    vector<struct puck_list_element> pl;	// Where are the pucks?
 	    
 		    *cap >> src;
 	    
@@ -374,7 +387,7 @@ int main( int argc, char** argv )
 	    } // while(1)
 	    
     } else {
-	    vector<Point2f> pl;	// Where are the pucks?
+	    vector<struct puck_list_element> pl;	// Where are the pucks?
 	    cv::warpPerspective(src, warp_out, cal_mat, Size(FIELD_W, FIELD_H));
 	    draw_cal_lines();
 	    imshow(window_name, src);
