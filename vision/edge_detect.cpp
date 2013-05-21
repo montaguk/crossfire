@@ -26,11 +26,18 @@
 
 using namespace cv;
 
+// Holds a CV moments and a pointer to the associated contour
+struct puck_list_element {
+	Moments moments;
+	vector<Point> *contour;
+};
+	
+
 // Global variables
 // function for sorting area array
 
-bool area_sorter_decending(Moments i, Moments j) {
-	return i.m00 > j.m00;
+bool area_sorter_decending(struct puck_list_element i, struct puck_list_element j) {
+	return i.moments.m00 > j.moments.m00;
 }
 
 /// Global variables
@@ -201,9 +208,10 @@ void find_puck (Mat &src, Mat &dst, vector<Point2f> &pl) {
 	cv::drawContours(src, contours, -1, Scalar(0, 0, 255));
 
 	// Find moments of all contours
-	vector<Moments> mu(contours.size());
+	vector<struct puck_list_element> mu(contours.size());
 	for (i = 0; i < contours.size(); i++) {
-		mu[i] = cv::moments(contours[i], true);
+		mu[i].moments = cv::moments(contours[i], true);
+		mu[i].contour = &contours[i];
 	}
 
 	// Sort the list
@@ -212,7 +220,7 @@ void find_puck (Mat &src, Mat &dst, vector<Point2f> &pl) {
 #ifdef DEBUG2
 	printf("Contour areas: [");
 	for (i = 0; i < mu.size(); i++) {
-		printf(" %f,", mu[i].m00);
+		printf(" %f,", mu[i].moments.m00);
 	}
 	printf("]");
 #endif
@@ -220,14 +228,14 @@ void find_puck (Mat &src, Mat &dst, vector<Point2f> &pl) {
 	// Find the mass centers for all moments
 	vector<Point2f> mc(contours.size());
 	for (i = 0; (i < mc.size()) && (i < NUM_PUCKS); i++) {
-		mc[i] = Point2f(mu[i].m10/mu[i].m00, mu[i].m01/mu[i].m00);
+		mc[i] = Point2f(mu[i].moments.m10/mu[i].moments.m00, mu[i].moments.m01/mu[i].moments.m00);
 		
 		// Draw circles around the centers
 		cv::circle(src, mc[i], 4, Scalar(255, 0, 0), -1, 8, 0);
 	}
 
 	for (i = 0; (i < mu.size()) && (i < NUM_PUCKS); i++) {
-		if (mu[i].m00 > MIN_PUCK_AREA) {
+		if (mu[i].moments.m00 > MIN_PUCK_AREA) {
 			pl.push_back(mc[i]);
 			
 #ifdef DEBUG
@@ -236,7 +244,6 @@ void find_puck (Mat &src, Mat &dst, vector<Point2f> &pl) {
 			
 		}
 	}
-
 }
 
 // Write puck locations in pl to the file named fifo
