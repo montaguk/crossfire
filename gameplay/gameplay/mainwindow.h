@@ -33,9 +33,6 @@ public:
 	explicit MainWindow(QWidget *parent = 0);
 	~MainWindow();
 
-
-
-	
 private:
 	void update_curPos_label();
 	void update_tarPos_label();

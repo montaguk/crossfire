@@ -280,6 +280,7 @@ void write_fifo(std::vector<struct puck_list_element> pl) {
 
 	fifo << str;
 	fifo.flush();			// Write everything
+	sleep(0.25);
 }
 
 /** @function main */

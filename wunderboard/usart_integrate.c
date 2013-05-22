@@ -244,7 +244,7 @@ uint8_t main(void){
   DDRD |= 0xF0; //set PD4-PD7 as outputs to solenoids
   DDRE &= 0xFC;//PORTE PIN0 and PIN1 are the encoder inputs
 
-  PORTC = position;//show position on LED's
+  //PORTC = position;//show position on LED's
   PORTD &= 0x0F; //set outputs for solenoid initially low
 
   tcnt0_init();//setup encoder reading interrupt
@@ -262,7 +262,7 @@ uint8_t main(void){
 		while(!(temp_position = getByteUART())); //get the new target position
 		while(!(tar_angle = getByteUART()));	 //get the new target angle
 		if(moving == 0){tar_position = temp_position;}//if the slide is not moving, update the new target position
-		PORTC = tar_position;
+		//PORTC = tar_position;
 	}
 	if(pulse_move_right == 1){	//if the move right pressure valve has been turned on
 		_delay_ms(1);
@@ -302,6 +302,10 @@ uint8_t main(void){
 		pos_reached = 0;       //reset position reached variable
 		//tar_position = position;//set target position to current position for overdamping
 		old_tar_position = tar_position;//set old target equal to new target so next change can be seen
+	}
+
+	if (!bit_is_clear(PINA, 0)) {
+		PORTC ^= 0x40;
 	}
 
 	char buf[10] = {0};

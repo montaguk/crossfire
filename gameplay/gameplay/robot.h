@@ -4,7 +4,7 @@
 #include "QAsyncSerial.h"
 #include <QPoint>
 
-#define MAX_LAT_POS 253
+#define MAX_LAT_POS 245
 #define MIN_LAT_POS 7
 #define MAX_DEG 140
 #define MIN_DEG 40

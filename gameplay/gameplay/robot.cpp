@@ -26,7 +26,7 @@ void Robot::move() {
 	//this->write(tar_lat_pos);
 	//this->write(tar_deg);
 	this->write(tmp);
-	printf("Moving robot to %d, at %d degrees\n", tar_lat_pos, tar_deg);
+	//printf("Moving robot to %d, at %d degrees\n", tar_lat_pos, tar_deg);
 }
 
 void Robot::set_cur_pos(int l) {
