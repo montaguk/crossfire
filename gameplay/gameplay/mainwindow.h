@@ -12,8 +12,7 @@
 // 4.7 ticks per cm
 #define FIELD_H 484 // In encoder ticks
 #define FIELD_W 265 // In encoder ticks
-#define DEADZONE_H 103 // In encoder ticks
-//#define DEADZONE_H 120
+#define DEADZONE_H 126 // In encoder ticks
 
 #define NUM_PUCKS 2
 
