@@ -305,7 +305,9 @@ uint8_t main(void){
 	}
 
 	if (!bit_is_clear(PINA, 0)) {
-		PORTC ^= 0x40;
+		PORTC |= 0x40;
+	} else {
+		PORTC &= ~0x40;
 	}
 
 	char buf[10] = {0};
