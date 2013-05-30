@@ -4,7 +4,7 @@ Puck::Puck(qint16 x, qint16 y)
 {
 	pos = new QPoint(x, y);
 	firing_vector = 0;
-	//type = t;
+	type = t;
 }
 
 Puck::~Puck() {
