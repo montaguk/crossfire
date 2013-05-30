@@ -265,22 +265,25 @@ void write_fifo(std::vector<struct puck_list_element> pl) {
 	int i;
 	char buf[25] = {0};
 	char str[50] = {0};
+
+	if (pl.size() > 0) {
 	
-	for (i = 0; i < pl.size(); i++) {
-		sprintf(buf, "%s,%d,%d", pl[i].type, (int)pl[i].center.x, (int)pl[i].center.y);
-		strcat(str, buf);
+		for (i = 0; i < pl.size(); i++) {
+			sprintf(buf, "%s,%d,%d", pl[i].type, (int)pl[i].center.x, (int)pl[i].center.y);
+			strcat(str, buf);
 
-		// If this is not the last element, insert a semi-colon
-		if (i != pl.size() - 1) {
-			strcat(str, ";");
+			// If this is not the last element, insert a semi-colon
+			if (i != pl.size() - 1) {
+				strcat(str, ";");
+			}
 		}
+
+		strcat(str, "\n");
+
+		fifo << str;
+		fifo.flush();			// Write everything
+		//sleep(0.25);
 	}
-
-	strcat(str, "\n");
-
-	fifo << str;
-	fifo.flush();			// Write everything
-	sleep(0.25);
 }
 
 /** @function main */

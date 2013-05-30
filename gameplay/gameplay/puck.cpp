@@ -1,6 +1,6 @@
 #include "puck.h"
 
-Puck::Puck(qint16 x, qint16 y)
+Puck::Puck(qint16 x, qint16 y, QString t)
 {
 	pos = new QPoint(x, y);
 	firing_vector = 0;
