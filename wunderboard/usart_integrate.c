@@ -36,6 +36,8 @@ uint8_t old_angle = 90;
 uint8_t temp_position = 7;
 uint8_t rec_sig = '@';
 
+volatile uint8_t firing = '0';				// Should we be firing?
+
 /***********************************************************************/
 //			chk_buttons
 //Checks the button input from the buttons on PORTA
@@ -261,6 +263,7 @@ uint8_t main(void){
  	if(getByteUART() == rec_sig){//if new data has been sent from the computer
 		while(!(temp_position = getByteUART())); //get the new target position
 		while(!(tar_angle = getByteUART()));	 //get the new target angle
+		while(!(firing = getByteUART()));		 //should we be shooting
 		if(moving == 0){tar_position = temp_position;}//if the slide is not moving, update the new target position
 		//PORTC = tar_position;
 	}
@@ -304,7 +307,7 @@ uint8_t main(void){
 		old_tar_position = tar_position;//set old target equal to new target so next change can be seen
 	}
 
-	if (!bit_is_clear(PINA, 0)) {
+	if ((firing == '1') | (!bit_is_clear(PINA, 0))) {
 		PORTC |= 0x40;
 	} else {
 		PORTC &= ~0x40;
@@ -317,6 +320,8 @@ uint8_t main(void){
 	sendStringUART(itoa(angle, buf, 10));    //send current angle to GUI
 	sendByteUART(',');
 	sendStringUART(itoa(tar_position, buf, 10));
+	//sendByteUART(',');
+	//sendByteUART(firing);
 	sendStringUART("\r\n");	//send newline char to protect from data mixup
   }
 }

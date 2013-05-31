@@ -279,11 +279,13 @@ void write_fifo(std::vector<struct puck_list_element> pl) {
 		}
 
 		strcat(str, "\n");
-
-		fifo << str;
-		fifo.flush();			// Write everything
-		//sleep(0.25);
+	} else {
+		strcpy(str, "no pucks\n");
 	}
+
+	fifo << str;
+	fifo.flush();			// Write everything
+	//sleep(0.25);
 }
 
 /** @function main */

@@ -11,9 +11,10 @@
 
 class Robot : public QAsyncSerial
 {
+	Q_OBJECT
+
 public:
 	Robot();
-	void fire();
 	void move();
 
 	void set_cur_pos(int l);
@@ -31,6 +32,8 @@ public:
 	int get_deg_min();
 	int get_deg_max();
 
+	char get_firing();
+
 	QPoint get_cur_barrel();
 
 private:
@@ -39,6 +42,14 @@ private:
 
 	int tar_lat_pos;
 	int tar_deg;
+
+	char firing;
+
+public slots:
+	void cease_fire();
+	void fire_one();
+	void fire();
+	void toggle_fire();
 };
 
 #endif // ROBOT_H

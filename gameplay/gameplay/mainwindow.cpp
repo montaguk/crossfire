@@ -160,7 +160,14 @@ void MainWindow::update_pucks() {
 	// [x, y; x, y \n]
 	while (continue_update) {
 		if (fifo.readLine(buf, sizeof(buf)) > 0) {
-			printf("Got string %s\n", buf);
+			printf("Got string of len %d: %s\n", strlen(buf), buf);
+
+			// Some bug here where we're detecting ghost lines
+			// or something... -montaguk
+			if (strlen(buf) == 1) {
+				continue;
+			}
+
 			QString s(buf);
 			s.replace("\n", "");
 			QStringList plist = s.split(";");
@@ -172,6 +179,11 @@ void MainWindow::update_pucks() {
 					delete pucks[i];
 					pucks[i] = 0;
 				}
+			}
+
+			// If there was no pucks, just bail now
+			if (s == "no pucks\n") {
+				continue;
 			}
 
 			for (puck_num = 0; puck_num < plist.size(); puck_num++) {
@@ -278,6 +290,7 @@ void MainWindow::select_target() {
 // Send string on serial line to robot
 void MainWindow::on_fireButton_clicked() {
 	printf("FIRE! X: %d, Deg: %d)\n", robot.get_cur_pos(), robot.get_cur_deg());
+	robot.fire_one();
 }
 
 // Update the screen
@@ -435,6 +448,9 @@ void MainWindow::update_shootingAt_label() {
 	char buf[1024] = {0};
 	sprintf(buf, "Shooting at: (%03d, %03d)", cur_tar->x(), cur_tar->y());
 	ui->shootingAtLabel->setText(buf);
+
+	sprintf(buf, "Firing: %d", robot.get_firing());
+	ui->firingLabel->setText(buf);
 }
 
 void MainWindow::update_currentTarget_label() {

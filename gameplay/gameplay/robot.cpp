@@ -3,6 +3,8 @@
 
 #include "robot.h"
 #include <stdio.h>
+#include <QThread>
+#include <QTimer>
 
 Robot::Robot() : QAsyncSerial()
 {
@@ -11,6 +13,14 @@ Robot::Robot() : QAsyncSerial()
 
 	tar_lat_pos = 0;
 	tar_deg = 0;
+
+	firing = '0';
+}
+
+void delay(int x) {
+	for (int i = 0; i <=x; i++){
+		// Do nothing
+	}
 }
 
 
@@ -18,15 +28,30 @@ Robot::Robot() : QAsyncSerial()
 // Updates target position and target deg
 void Robot::move() {
 
-	QString tmp;
-	tmp.append(QChar('@'));
-	tmp.append(QChar(tar_lat_pos));
-	tmp.append(QChar(tar_deg));
-	//this->write("@");
-	//this->write(tar_lat_pos);
-	//this->write(tar_deg);
-	this->write(tmp);
-	//printf("Moving robot to %d, at %d degrees\n", tar_lat_pos, tar_deg);
+	// Serial must be open to update
+	if (this->isOpen()) {
+
+		//QString tmp;
+		//tmp.append(QChar('@'));
+		//tmp.append(QChar(tar_lat_pos));
+		//tmp.append(QChar(tar_deg));
+		//tmp.append(QChar(firing));
+
+		// This timing is CRITICAL! Do not
+		// modify unless you KNOW for sure
+		// that it still works
+		this->write(QString("@"));
+		delay(0x2FFFFF);
+		this->write(QString(tar_lat_pos));
+		delay(0x2FFFFF);
+		this->write(QString(tar_deg));
+		delay(0x2FFFFF);
+		this->write(QString(firing));
+		//delay(0xFFFFF);
+
+		//std::cout << tmp.toStdString() << std::endl;
+	}
+
 }
 
 void Robot::set_cur_pos(int l) {
@@ -66,6 +91,32 @@ void Robot::set_tar_deg(int d) {
 		tar_deg = MIN_DEG;
 	} else {
 		tar_deg= d;
+	}
+}
+
+void Robot::fire() {
+	firing = '1';
+}
+
+void Robot::cease_fire() {
+	firing = '0';
+}
+
+void Robot::fire_one() {
+	// Use timer to pulse dispenser for 15ms
+	this->fire();
+	QTimer::singleShot(50, this, SLOT(cease_fire()));
+}
+
+char Robot::get_firing() {
+	return firing;
+}
+
+void Robot::toggle_fire() {
+	if (firing == '1') {
+		firing = '0';
+	} else {
+		firing = '1';
 	}
 }
 
