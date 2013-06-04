@@ -37,6 +37,7 @@ uint8_t temp_position = 7;
 uint8_t rec_sig = '@';
 
 volatile uint8_t firing = '0';				// Should we be firing?
+volatile uint8_t game_on = 0;				// Can we play?
 
 /***********************************************************************/
 //			chk_buttons
@@ -304,13 +305,19 @@ uint8_t main(void){
 		}
 		pos_reached = 0;       //reset position reached variable
 		//tar_position = position;//set target position to current position for overdamping
-		old_tar_position = tar_position;//set old target equal to new target so next change can be seen
+		old_tar_position = tar_position; //set old target equal to new target so next change can be seen
 	}
 
 	if ((firing == '1') | (!bit_is_clear(PINA, 0))) {
 		PORTC |= 0x40;
 	} else {
 		PORTC &= ~0x40;
+	}
+
+	if (!bit_is_clear(PINA, 7)) {
+		game_on = 1;
+	} else {
+		game_on = 0;
 	}
 
 	char buf[10] = {0};
@@ -320,8 +327,8 @@ uint8_t main(void){
 	sendStringUART(itoa(angle, buf, 10));    //send current angle to GUI
 	sendByteUART(',');
 	sendStringUART(itoa(tar_position, buf, 10));
-	//sendByteUART(',');
-	//sendByteUART(firing);
+	sendByteUART(',');
+	sendStringUART(itoa(game_on, buf, 10));
 	sendStringUART("\r\n");	//send newline char to protect from data mixup
   }
 }

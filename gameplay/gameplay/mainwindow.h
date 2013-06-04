@@ -47,6 +47,7 @@ private:
 	void update_cur_target();
 	void scene_clicked(QEvent *ev);
 	void update_shootingAt_label();
+	void update_gameState_label();
 	void select_target();
 	int find_best_target();
 
@@ -70,11 +71,13 @@ private:
 	QFuture<void> puck_updater;
 	void update_pucks();
 	bool continue_update;
+	qint8 game_on;
 
 	QTimer *screen_refresh_timer;
 
 	enum _targets{PUCK1, PUCK2, MANUAL, NONE} shooting_at;
 	enum _modes{MAN, AUTO} targeting_mode;
+	enum _game_state{MAN_STATE, ARBITRATED} game_state;
 
 private slots:
 	void on_fireButton_clicked();
@@ -86,6 +89,7 @@ private slots:
 	void on_puck1Button_clicked();
 	void on_puck2Button_clicked();
 	void on_autoSelectButton_clicked();
+	void on_arbiterCBox_stateChanged();
 	void refresh_field();
 
 protected:

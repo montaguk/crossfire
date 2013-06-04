@@ -113,6 +113,13 @@
            </property>
           </widget>
          </item>
+         <item alignment="Qt::AlignRight">
+          <widget class="QLabel" name="gameStateLabel">
+           <property name="text">
+            <string>Game State: Manual</string>
+           </property>
+          </widget>
+         </item>
          <item alignment="Qt::AlignLeft">
           <widget class="QLabel" name="firingLabel">
            <property name="layoutDirection">
@@ -147,15 +154,15 @@
           </widget>
          </item>
          <item alignment="Qt::AlignLeft">
-          <widget class="QCheckBox" name="amove_cbox">
+          <widget class="QCheckBox" name="arbiterCBox">
            <property name="layoutDirection">
             <enum>Qt::RightToLeft</enum>
            </property>
            <property name="text">
-            <string>Angular Movement</string>
+            <string>Enable Arbiter</string>
            </property>
            <property name="checked">
-            <bool>true</bool>
+            <bool>false</bool>
            </property>
           </widget>
          </item>

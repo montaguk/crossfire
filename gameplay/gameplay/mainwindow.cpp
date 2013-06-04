@@ -41,9 +41,11 @@ MainWindow::MainWindow(QWidget *parent) :
 	current_tar = 0;
 	cur_fv = 0;
 	current_fv = 0;
-	//cur_tar = 0;
+	cur_tar = new QPoint(140, 140);
 	shooting_at = NONE;
 	targeting_mode = MAN;
+	game_state = MAN_STATE;
+	game_on = 0;
 
 	// Keep track of the pucks
 	printf("Launching puck update thread...");
@@ -312,6 +314,20 @@ void MainWindow::on_puck2Button_clicked() {
 	fire = true;
 }
 
+// Switch to auto mode when listening to the arbiter
+void MainWindow::on_arbiterCBox_stateChanged() {
+	if (ui->arbiterCBox->isChecked()) {
+		targeting_mode = AUTO;
+		game_state = ARBITRATED;
+		ui->autoSelectButton->setChecked(true);
+
+	} else {
+		game_state = MAN_STATE;
+		targeting_mode = MAN;
+		ui->autoSelectButton->setChecked(false);
+	}
+}
+
 // Parse input data, and update current position
 // of robot
 void MainWindow::onLineReceived(QString data)
@@ -324,16 +340,29 @@ void MainWindow::onLineReceived(QString data)
 	//quint8 cur_deg = (quint8)data[1].digitValue();
 	QStringList l = data.split(",");
 
-	if (l.length() >= 3) {
+	if (l.length() >= 4) {
 		qint16 cur_lat_pos = l.at(0).toInt();
 		qint16 cur_deg = l.at(1).toInt();
 		qint16 tar_pos = l.at(2).toInt();
+		game_on = l.at(3).toInt();
 
 
 		//printf("X: %d at %d deg, Tar: %d\n", cur_lat_pos, cur_deg, tar_pos);
 
 		robot.set_cur_pos(cur_lat_pos);
 		robot.set_cur_deg(cur_deg);
+
+		// Lets us ignore the arbitor if we want
+		// Shoot only when we have a valid target
+		if (game_state == ARBITRATED) {
+			if (game_on
+					&& (shooting_at != MANUAL)
+					&& (shooting_at != NONE)) {
+				robot.fire();
+			} else {
+				robot.cease_fire();
+			}
+		}
 
 		// We need to update the firing vector if we
 		// are in manual fire mode
@@ -404,8 +433,10 @@ void MainWindow::scene_clicked(QEvent *ev){
 
 	shooting_at = MANUAL;
 	targeting_mode = MAN;
+	game_state = MAN_STATE;
 
-	fire = true;  // start shooting
+	//fire = true;  // start shooting
+	robot.fire_one();
 	//robot.move(); // start moving the robot
 }
 
@@ -472,6 +503,23 @@ void MainWindow::update_currentTarget_label() {
 	sprintf(buf, "Current Target: %s", tar_str);
 	ui->targetLabel->setText(buf);
 
+}
+
+void MainWindow::update_gameState_label() {
+	const char *state_str;
+
+	if (game_state == MAN_STATE) {
+
+		state_str = "Game State: Manual";
+	} else {
+		state_str = "Game State: Arbitrated";
+
+		if (game_on) {
+			state_str = "Game State: Game on!";
+		}
+	}
+
+	ui->gameStateLabel->setText(state_str);
 }
 
 void MainWindow::update_slider() {
@@ -562,6 +610,7 @@ void MainWindow::update_gui() {
 	update_tarPos_label();
 	update_shootingAt_label();
 	update_currentTarget_label();
+	update_gameState_label();
 	update_slider();
 	update_tarDial();
 	update_curDial();
