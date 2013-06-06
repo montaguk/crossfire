@@ -22,6 +22,13 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->portName->addItem("COM3", 0);
 	ui->portName->addItem("COM4", 0);
 
+	ui->strategyBox->addItem("Offensive", 0);
+	ui->strategyBox->addItem("Defensive", 0);
+	ui->strategyBox->addItem("Prefer Star", 0);
+	ui->strategyBox->addItem("Prefer Triangle", 0);
+
+	ui->strategyBox->setCurrentIndex(0);
+
 	// Add the robot views to the field
 	scene.setSceneRect(0, 0, FIELD_W, FIELD_H + DEADZONE_H);
 	scene.addRect(0, 0, FIELD_W, FIELD_H);
@@ -249,19 +256,54 @@ int MainWindow::find_best_target() {
 		return 1;
 	}
 
-	// If there is a puck that is too close, always chose that
-	// one.  If they are both too close, shoot the closest one
+	// Where are the pucks?
 	int y0 = pucks[0]->center().y();
 	int y1 = pucks[1]->center().y();
 
-	if (y0 > DANGER_THRESH || y1 > DANGER_THRESH) {
-		if (y0 > y1 ) {
-			return 0;
-		} else {
-			return 1;
+	if (ui->strategyBox->currentText() == "Defensive") {
+		// If there is a puck that is too close, always chose that
+		// one.  If they are both too close, shoot the closest one
+
+		if (y0 > DANGER_THRESH || y1 > DANGER_THRESH) {
+			if (y0 > y1 ) {
+				return 0;
+			} else {
+				return 1;
+			}
 		}
 	}
 
+	if (pucks[0]->type != NULL && pucks[1]->type != NULL) {
+		if (ui->strategyBox->currentText() == "Prefer Star") {
+			// If one of the pucks is a star, return that one,
+			// if there are two stars, shoot at the furthest one
+
+
+			if (pucks[0]->type == "S" && pucks[1]->type != "S") {
+				return 0;
+			} else if (pucks[1]->type == "S" && pucks[0]->type != "S") {
+				return 1;
+			} else {
+				// Just shoot at the furthest one
+				// by falling through
+			}
+
+
+		} else if (ui->strategyBox->currentText() == "Prefer Triangle") {
+			if (pucks[0]->type == "T" && pucks[1]->type != "T") {
+				return 0;
+			} else if (pucks[1]->type == "T" && pucks[0]->type != "T") {
+				return 1;
+			} else {
+				// Just shoot at the furthest one
+				// by falling through
+			}
+
+		}
+	}
+
+	// Just shoot at the puck closest to the opponents goal
+	// "Offensive" stragey
 	// If there are no pucks in the danger zone, select
 	// the puck that is closest to the opponents goal
 	if (y0 > y1) {
@@ -269,6 +311,7 @@ int MainWindow::find_best_target() {
 	} else {
 		return 0;
 	}
+
 
 	return 0;
 }
@@ -304,14 +347,18 @@ void MainWindow::on_refreshButton_clicked() {
 void MainWindow::on_puck1Button_clicked() {
 	shooting_at = PUCK1;
 	targeting_mode = MAN;
-	fire = true;
+	game_state = MAN_STATE;
+	ui->arbiterCBox->setChecked(false);
+	//fire = true;
 }
 
 // Select puck 2 as target
 void MainWindow::on_puck2Button_clicked() {
 	shooting_at = PUCK2;
 	targeting_mode = MAN;
-	fire = true;
+	game_state = MAN_STATE;
+	ui->arbiterCBox->setChecked(false);
+	//fire = true;
 }
 
 // Switch to auto mode when listening to the arbiter
@@ -320,11 +367,15 @@ void MainWindow::on_arbiterCBox_stateChanged() {
 		targeting_mode = AUTO;
 		game_state = ARBITRATED;
 		ui->autoSelectButton->setChecked(true);
+		//ui->puck1Button->setEnabled(false);
+		//ui->puck2Button->setEnabled(false);
 
 	} else {
 		game_state = MAN_STATE;
 		targeting_mode = MAN;
 		ui->autoSelectButton->setChecked(false);
+		//ui->puck1Button->setEnabled(true);
+		//ui->puck2Button->setEnabled(true);
 	}
 }
 
@@ -358,7 +409,7 @@ void MainWindow::onLineReceived(QString data)
 			if (game_on
 					&& (shooting_at != MANUAL)
 					&& (shooting_at != NONE)) {
-				robot.fire();
+				robot.fire_one();
 			} else {
 				robot.cease_fire();
 			}
@@ -436,7 +487,7 @@ void MainWindow::scene_clicked(QEvent *ev){
 	game_state = MAN_STATE;
 
 	//fire = true;  // start shooting
-	robot.fire_one();
+	//robot.fire_one();
 	//robot.move(); // start moving the robot
 }
 

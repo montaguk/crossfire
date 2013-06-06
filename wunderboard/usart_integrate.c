@@ -82,8 +82,10 @@ void chk_encoder(void){
 	  }		
 	  prev_state1 = enc1_state;//set current encoder state to be previous state for next run
 //	  PORTC = position;
-	  if(position == tar_position){
-		pos_reached = 1;
+
+	  if (((direction == 1) && (position >= tar_position))
+	      || ((direction == 0) && (position <= tar_position))) {
+			pos_reached = 1;
 	  }
 	}
 }//chk_encoder
@@ -245,7 +247,7 @@ uint8_t main(void){
   DDRB |= 0x20; //set PB5 as output, PB5 is PWM output  
   DDRC |= 0xFF;//setup LED's for position output
   DDRD |= 0xF0; //set PD4-PD7 as outputs to solenoids
-  DDRE &= 0xFC;//PORTE PIN0 and PIN1 are the encoder inputs
+  DDRE &= 0xCC;//PORTE PIN0 and PIN1 are the encoder inputs
 
   //PORTC = position;//show position on LED's
   PORTD &= 0x0F; //set outputs for solenoid initially low
@@ -318,6 +320,20 @@ uint8_t main(void){
 		game_on = 1;
 	} else {
 		game_on = 0;
+	}
+
+	if (!bit_is_clear(PINE, 4)) {
+		position = 7;
+		//stop_left();
+		//pos_reached = 1;       //reset position reached variable
+		//old_tar_position = tar_position; //set old target equal to new target so next change can be seen
+	}
+
+	if (!bit_is_clear(PINE, 5)) {
+		position = 245;
+		//stop_right();
+		//pos_reached = 1;       //reset position reached variable
+		//old_tar_position = tar_position; //set old target equal to new target so next change can be seen
 	}
 
 	char buf[10] = {0};

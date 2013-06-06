@@ -78,6 +78,7 @@ private:
 	enum _targets{PUCK1, PUCK2, MANUAL, NONE} shooting_at;
 	enum _modes{MAN, AUTO} targeting_mode;
 	enum _game_state{MAN_STATE, ARBITRATED} game_state;
+	enum _strategy{OFFENSIVE, DEFENSIVE, PREFER_STAR} strategy;
 
 private slots:
 	void on_fireButton_clicked();
